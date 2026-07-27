@@ -1,0 +1,133 @@
+@page "/sites"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject FinService FS
+<PageTitle>Fundament — Объекты</PageTitle>
+
+<div class="d-flex justify-content-between mb-4"><h2>Объекты</h2><button class="btn btn-success" @onclick="ShowAdd"><i class="bi bi-plus-circle"></i> Добавить</button></div>
+
+@if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
+else { @if (!sites.Any()) { <div class="alert alert-info">Нет объектов.</div> } else { <div class="row">
+    @foreach (var s in sites) {
+        var se = siteExp.GetValueOrDefault(s.Id);
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h5>@s.Name</h5>
+                        <span class="badge @(s.Status==SiteStatus.Active?"bg-success":s.Status==SiteStatus.Completed?"bg-secondary":"bg-warning")">
+                            @(s.Status==SiteStatus.Active?"Активен":s.Status==SiteStatus.Completed?"Завершён":"Приостановлен")
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(s.Address)) { <p class="text-muted small"><i class="bi bi-geo-alt"></i> @s.Address</p> }
+                    <p class="text-muted small">Начат: @s.StartDate.ToString("dd.MM.yyyy")</p>
+                    <h6 class="text-danger">Расходы: @se.ToString("N2") ₽</h6>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEdit(s)"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => ChgStatus(s.Id)">Статус</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDelete(s)"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div> } }
+
+@* Модальное окно Добавить/Редактировать *@
+@if (showModal)
+{
+    <ModalDialog Title="@(editingId > 0 ? "Редактировать объект" : "Добавить объект")" OnClose="HideModals">
+        <div class="mb-3"><label class="form-label">Название</label><input type="text" class="form-control" @bind="editName" /></div>
+        <div class="mb-3"><label class="form-label">Адрес</label><input type="text" class="form-control" @bind="editAddr" /></div>
+        <button class="btn btn-success" @onclick="Save" disabled="@string.IsNullOrWhiteSpace(editName)">@(editingId > 0 ? "Сохранить" : "Добавить")</button>
+    </ModalDialog>
+}
+
+@* Модальное окно подтверждения удаления *@
+@if (showDelete)
+{
+    <ModalDialog Title="Удаление объекта" OnClose="HideModals">
+        @if (deleteHasExpenses || deleteHasIncomes)
+        {
+            <div class="alert alert-warning">
+                <p><strong>@deleteSite?.Name</strong> используется:</p>
+                @if (deleteHasExpenses) { <p>- В расходах (@deleteExpenseCount записей)</p> }
+                @if (deleteHasIncomes) { <p>- В доходах (@deleteIncomeCount записей)</p> }
+                <p>Выберите, что делать с этими записями:</p>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Перенести на объект</label>
+                <select class="form-select" @bind="transferToSiteId">
+                    <option value="">Оставить без объекта</option>
+                    @foreach (var s in allSites.Where(x => x.Id != deleteSite?.Id))
+                    {
+                        <option value="@s.Id">@s.Name</option>
+                    }
+                </select>
+            </div>
+        }
+        else
+        {
+            <p>Удалить объект <strong>@deleteSite?.Name</strong>? Записей с ним нет.</p>
+        }
+        <div class="d-flex gap-2">
+            <button class="btn btn-secondary" @onclick="HideModals">Отмена</button>
+            <button class="btn btn-danger" @onclick="ExecuteDelete">Удалить</button>
+        </div>
+    </ModalDialog>
+}
+
+@code {
+    bool loading = true, showModal, showDelete;
+    List<Site> sites = new(), allSites = new();
+    Dictionary<int, double> siteExp = new();
+    int editingId;
+    string editName = "", editAddr = "";
+    Site? deleteSite;
+    bool deleteHasExpenses, deleteHasIncomes;
+    int deleteExpenseCount, deleteIncomeCount;
+    int? transferToSiteId;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    async Task Load() {
+        loading = true;
+        sites = await FS.GetSites();
+        siteExp = new();
+        foreach (var s in sites) siteExp[s.Id] = await FS.SiteExp(s.Id);
+        loading = false;
+    }
+
+    void ShowAdd() { editingId = 0; editName = ""; editAddr = ""; showModal = true; }
+    void ShowEdit(Site s) { editingId = s.Id; editName = s.Name; editAddr = s.Address ?? ""; showModal = true; }
+    void HideModals() { showModal = false; showDelete = false; }
+
+    async Task Save() {
+        if (editingId > 0) await FS.UpdateSite(new Site { Id = editingId, Name = editName, Address = editAddr });
+        else await FS.AddSite(new Site { Name = editName, Address = editAddr });
+        HideModals(); await Load();
+    }
+
+    async Task ChgStatus(int id) {
+        var s = sites.First(x => x.Id == id);
+        var ns = s.Status == SiteStatus.Active ? SiteStatus.Paused : s.Status == SiteStatus.Paused ? SiteStatus.Completed : SiteStatus.Active;
+        await FS.UpdSiteStatus(id, ns); await Load();
+    }
+
+    async Task ConfirmDelete(Site s) {
+        deleteSite = s;
+        deleteHasExpenses = await FS.SiteHasExpenses(s.Id); deleteExpenseCount = deleteHasExpenses ? (await FS.GetExpenses(s.Id)).Count : 0;
+        deleteHasIncomes = await FS.SiteHasIncomes(s.Id); deleteIncomeCount = deleteHasIncomes ? (await FS.GetIncomes()).Where(i => i.SiteId == s.Id).Count() : 0;
+        allSites = await FS.GetAllSites();
+        transferToSiteId = (await FS.GetDefaultSite())?.Id;
+        showDelete = true;
+    }
+
+    async Task ExecuteDelete() {
+        if (deleteSite == null) return;
+        if (deleteHasExpenses) await FS.TransferExpenses(deleteSite.Id, transferToSiteId);
+        if (deleteHasIncomes) await FS.TransferIncomes(deleteSite.Id, transferToSiteId);
+        await FS.DeleteSite(deleteSite.Id);
+        HideModals(); await Load();
+    }
+}

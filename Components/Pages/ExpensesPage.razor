@@ -1,0 +1,40 @@
+@page "/expenses"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject FinService FS
+<PageTitle>Fundament — Расходы</PageTitle>
+<div class="d-flex justify-content-between mb-4"><h2>Расходы</h2><button class="btn btn-danger" @onclick="ShowAdd"><i class="bi bi-dash-circle"></i> Добавить</button></div>
+@if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
+else { @if (!items.Any()) { <div class="alert alert-info">Нет расходов.</div> } else { <div class="card"><div class="card-body">
+<table class="table table-hover"><thead><tr><th>Дата</th><th>Объект</th><th>Категория</th><th>Подкатегория</th><th>Сумма</th><th>Описание</th><th></th></tr></thead><tbody>
+    @foreach (var e in items) { <tr><td>@e.Date.ToString("dd.MM.yyyy")</td><td>@(e.Site?.Name ?? "Без объекта")</td><td>@(e.Category?.Name ?? "Без категории")</td><td>@(e.Subcategory?.Name ?? "Без подкатегории")</td><td class="text-danger">-@e.Amount.ToString("N2") руб</td><td><small>@e.Description</small></td><td>
+        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowEdit(e)"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-danger" @onclick="() => Del(e.Id)"><i class="bi bi-trash"></i></button>
+    </td></tr> }
+</tbody></table>
+<div class="text-end fw-bold p-2 border-top">ИТОГО: <span class="text-danger">@items.Sum(e => e.Amount).ToString("N2") руб</span></div>
+</div></div> } }
+@if (showModal) { <ModalDialog Title="@(editingId > 0 ? "Изменить расход" : "Добавить расход")" OnClose="HideModal" DialogClass="modal-lg">
+    <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Объект</label><select class="form-select" @bind="sid"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Сумма *</label><input type="number" class="form-control" @bind="amt" step="0.01" min="0.01" /></div></div>
+    <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Категория</label><select class="form-select" @bind="cid" @bind:after="LoadSubs"><option value="">Без категории</option>@foreach (var c in cats) { <option value="@c.Id">@c.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Подкатегория</label><select class="form-select" @bind="subid"><option value="">Без подкатегории</option>@foreach (var s in subs) { <option value="@s.Id">@s.Name</option> }</select></div></div>
+    <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="dt" /></div>
+    <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="desc" /></div>
+    <button class="btn btn-danger" @onclick="Save" disabled="@(amt <= 0)">@(editingId > 0 ? "Сохранить" : "Добавить")</button>
+</ModalDialog> }
+@code {
+    bool loading = true, showModal; List<Expense> items = new(); List<Site> sites = new(); List<Category> cats = new(); List<Subcategory> subs = new();
+    int? sid, cid, subid; double amt; string desc = ""; DateTime dt = DateTime.Now; int editingId;
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load() { loading = true; items = await FS.GetExpenses(); sites = await FS.GetSites(); cats = await FS.GetCategories(); loading = false; }
+    void ShowAdd() { editingId = 0; sid = cid = subid = null; amt = 0; desc = ""; dt = DateTime.Now; subs = new(); showModal = true; }
+    void ShowEdit(Expense e) { editingId = e.Id; sid = e.SiteId; cid = e.CategoryId; subid = e.SubcategoryId; amt = e.Amount; desc = e.Description ?? ""; dt = e.Date; LoadSubs(); showModal = true; }
+    void HideModal() => showModal = false;
+    void LoadSubs() { if (cid.HasValue && cid > 0) { subs = cats.FirstOrDefault(c => c.Id == cid)?.Subcategories.ToList() ?? new(); } else { subs = new(); } }
+    async Task Save() {
+        if (!sid.HasValue) sid = (await FS.GetDefaultSite())?.Id;
+        var exp = new Expense { Amount = amt, Description = desc, Date = dt, SiteId = sid, CategoryId = cid, SubcategoryId = subid };
+        if (editingId > 0) { exp.Id = editingId; await FS.UpdateExpense(exp); } else await FS.AddExpense(exp);
+        showModal = false; await Load();
+    }
+    async Task Del(int id) { await FS.DeleteExpense(id); await Load(); }
+}

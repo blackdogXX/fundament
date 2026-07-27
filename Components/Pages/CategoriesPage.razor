@@ -1,0 +1,78 @@
+@page "/categories"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject FinService FS
+
+<PageTitle>Fundament — Категории</PageTitle>
+<div class="d-flex justify-content-between mb-4"><h2>Категории расходов</h2><button class="btn btn-primary" @onclick="ShowCat"><i class="bi bi-plus-circle"></i> Новая категория</button></div>
+
+@if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
+else { @if (!items.Any()) { <div class="alert alert-info">Нет категорий.</div> } else { <div class="row">
+    @foreach (var c in items) {
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">@c.Name</h6>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowEditCat(c)"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => ConfirmDeleteCat(c)"><i class="bi bi-trash"></i></button>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowSub(c.Id)"><i class="bi bi-plus"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (!c.Subcategories.Any()) { <p class="text-muted small">Нет подкатегорий</p> }
+                    else {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var s in c.Subcategories) {
+                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+                                    @s.Name
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowEditSub(s)"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDeleteSub(s)"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div> } }
+
+@* Модалки *@
+@if (showCat) { <ModalDialog Title="Новая категория" OnClose="HideModals"><div class="mb-3"><label class="form-label">Название</label><input type="text" class="form-control" @bind="catName" /></div><button class="btn btn-primary" @onclick="AddCat" disabled="@string.IsNullOrWhiteSpace(catName)">Сохранить</button></ModalDialog> }
+@if (showEditCat) { <ModalDialog Title="Редактировать категорию" OnClose="HideModals"><div class="mb-3"><label class="form-label">Название</label><input type="text" class="form-control" @bind="catName" /></div><button class="btn btn-primary" @onclick="SaveEditCat" disabled="@string.IsNullOrWhiteSpace(catName)">Сохранить</button></ModalDialog> }
+@if (showSub) { <ModalDialog Title="Новая подкатегория" OnClose="HideModals"><div class="mb-3"><label class="form-label">Название</label><input type="text" class="form-control" @bind="subName" /></div><button class="btn btn-primary" @onclick="AddSub" disabled="@string.IsNullOrWhiteSpace(subName)">Сохранить</button></ModalDialog> }
+@if (showEditSub) { <ModalDialog Title="Редактировать подкатегорию" OnClose="HideModals"><div class="mb-3"><label class="form-label">Название</label><input type="text" class="form-control" @bind="subName" /></div><button class="btn btn-primary" @onclick="SaveEditSub" disabled="@string.IsNullOrWhiteSpace(subName)">Сохранить</button></ModalDialog> }
+
+@* Подтверждение удаления *@
+@if (showDelCat) { <ModalDialog Title="Удалить категорию?" OnClose="HideModals"><p>Удалить категорию <strong>@delCatName</strong> и все её подкатегории?</p><div class="d-flex gap-2"><button class="btn btn-secondary" @onclick="HideModals">Отмена</button><button class="btn btn-danger" @onclick="DeleteCat">Удалить</button></div></ModalDialog> }
+@if (showDelSub) { <ModalDialog Title="Удалить подкатегорию?" OnClose="HideModals"><p>Удалить подкатегорию <strong>@delSubName</strong>?</p><div class="d-flex gap-2"><button class="btn btn-secondary" @onclick="HideModals">Отмена</button><button class="btn btn-danger" @onclick="DeleteSub">Удалить</button></div></ModalDialog> }
+
+@code {
+    bool loading = true;
+    bool showCat, showEditCat, showSub, showEditSub, showDelCat, showDelSub;
+    List<Category> items = new();
+    string catName = "", subName = "";
+    int editCatId, editSubId, subCatId, delCatId, delSubId;
+    string delCatName = "", delSubName = "";
+
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load() { loading = true; items = await FS.GetCategories(); loading = false; }
+
+    void ShowCat() { catName = ""; showCat = true; }
+    void ShowEditCat(Category c) { editCatId = c.Id; catName = c.Name; showEditCat = true; }
+    void ShowSub(int id) { subCatId = id; subName = ""; showSub = true; }
+    void ShowEditSub(Subcategory s) { editSubId = s.Id; subName = s.Name; showEditSub = true; }
+    void ConfirmDeleteCat(Category c) { delCatId = c.Id; delCatName = c.Name; showDelCat = true; }
+    void ConfirmDeleteSub(Subcategory s) { delSubId = s.Id; delSubName = s.Name; showDelSub = true; }
+    void HideModals() { showCat = showEditCat = showSub = showEditSub = showDelCat = showDelSub = false; }
+
+    async Task AddCat() { await FS.AddCategory(catName); HideModals(); await Load(); }
+    async Task SaveEditCat() { await FS.UpdateCategory(editCatId, catName); HideModals(); await Load(); }
+    async Task AddSub() { await FS.AddSub(subCatId, subName); HideModals(); await Load(); }
+    async Task SaveEditSub() { await FS.UpdateSub(editSubId, subName); HideModals(); await Load(); }
+    async Task DeleteCat() { await FS.DeleteCategory(delCatId); HideModals(); await Load(); }
+    async Task DeleteSub() { await FS.DeleteSub(delSubId); HideModals(); await Load(); }
+}

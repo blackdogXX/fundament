@@ -1,0 +1,216 @@
+@page "/"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject FinService FS
+@inject NavigationManager Nav
+
+<PageTitle>Fundament — Дашборд</PageTitle>
+
+@if (loading) { <div class="text-center mt-5"><div class="spinner-border"></div></div> }
+else {
+    <h2 class="mb-4">Финансовый обзор</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-bg-success shadow-sm">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-arrow-down-circle fs-1"></i>
+                    <h5 class="card-title mt-2">Общий доход</h5>
+                    <h2 class="card-text">@totalInc.ToString("N0")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-danger shadow-sm">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-arrow-up-circle fs-1"></i>
+                    <h5 class="card-title mt-2">Общие расходы</h5>
+                    <h2 class="card-text">@totalExp.ToString("N0")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-@(bal >= 0 ? "primary" : "warning") shadow-sm">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-piggy-bank fs-1"></i>
+                    <h5 class="card-title mt-2">Остаток</h5>
+                    <h2 class="card-text">@bal.ToString("N0")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-2">
+            <button class="btn btn-success w-100 py-3" @onclick="ShowAddIncome">
+                <i class="bi bi-plus-circle fs-5"></i> Добавить доход
+            </button>
+        </div>
+        <div class="col-md-6 mb-2">
+            <button class="btn btn-danger w-100 py-3" @onclick="ShowAddExpense">
+                <i class="bi bi-dash-circle fs-5"></i> Добавить расход
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-building"></i> Расходы по объектам</h5>
+                    <a href="/sites" class="btn btn-sm btn-outline-primary">Все объекты</a>
+                </div>
+                <div class="card-body">
+                    @if (!sites.Any()) {
+                        <p class="text-muted text-center py-3">Нет объектов. <a href="/sites">Создайте первый</a></p>
+                    } else {
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Объект</th><th>Статус</th><th class="text-end">Расходы</th><th>%</th></tr></thead>
+                            <tbody>
+                                @foreach (var s in sites) {
+                                    var se = sexp.GetValueOrDefault(s.Id);
+                                    var pct = totalExp > 0 ? se / totalExp * 100 : 0;
+                                    <tr>
+                                        <td>@s.Name</td>
+                                        <td><span class="badge @GetBadge(s.Status)">@GetStatus(s.Status)</span></td>
+                                        <td class="text-end text-danger">@se.ToString("N0")</td>
+                                        <td>
+                                            <div class="progress" style="height:18px">
+                                                <div class="progress-bar" style="width:@pct.ToString("0.0")%">@pct.ToString("0.0")%</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Последние операции</h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (!recent.Any()) {
+                        <p class="text-muted text-center py-4">Нет операций</p>
+                    } else {
+                        <div class="list-group list-group-flush">
+                            @foreach (var op in recent) {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">@op.Date.ToString("dd.MM.yyyy")</small>
+                                        <div>@op.Description</div>
+                                        <small class="text-muted">@op.SiteName</small>
+                                    </div>
+                                    <span class="badge @(op.IsIncome ? "bg-success" : "bg-danger") fs-6">
+                                        @(op.IsIncome ? "+" : "-")@op.Amount.ToString("N0")
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Модальное окно добавления дохода *@
+@if (showIncome) {
+    <ModalDialog Title="Добавить доход" OnClose="() => showIncome = false">
+        <div class="mb-3"><label class="form-label">Сумма</label><input type="number" class="form-control" @bind="incAmt" step="0.01" min="0.01" /></div>
+        <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="incDt" /></div>
+        <div class="mb-3"><label class="form-label">Объект</label><select class="form-select" @bind="incSite"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div>
+        <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="incDesc" /></div>
+        <button class="btn btn-success" @onclick="AddIncome" disabled="@(incAmt <= 0)">Добавить</button>
+    </ModalDialog>
+}
+
+@* Модальное окно добавления расхода *@
+@if (showExpense) {
+    <ModalDialog Title="Добавить расход" OnClose="() => showExpense = false" DialogClass="modal-lg">
+        <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Объект</label><select class="form-select" @bind="expSite"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Сумма *</label><input type="number" class="form-control" @bind="expAmt" step="0.01" min="0.01" /></div></div>
+        <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Категория</label><select class="form-select" @bind="expCat" @bind:after="LoadExpSubs"><option value="">Без категории</option>@foreach (var c in expCats) { <option value="@c.Id">@c.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Подкатегория</label><select class="form-select" @bind="expSub"><option value="">Без подкатегории</option>@foreach (var s in expSubs) { <option value="@s.Id">@s.Name</option> }</select></div></div>
+        <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="expDt" /></div>
+        <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="expDesc" /></div>
+        <button class="btn btn-danger" @onclick="AddExpense" disabled="@(expAmt <= 0)">Добавить</button>
+    </ModalDialog>
+}
+
+@code {
+    bool loading = true, showIncome, showExpense;
+    double totalInc, totalExp, bal;
+    List<Site> sites = new();
+    Dictionary<int, double> sexp = new();
+    List<RecentOp> recent = new();
+
+    // Поля для дохода
+    double incAmt; string incDesc = ""; DateTime incDt = DateTime.Now; int? incSite;
+    // Поля для расхода
+    double expAmt; string expDesc = ""; DateTime expDt = DateTime.Now; int? expSite, expCat, expSub;
+    List<Category> expCats = new();
+    List<Subcategory> expSubs = new();
+
+    class RecentOp
+    {
+        public DateTime Date { get; set; }
+        public string Description { get; set; } = "";
+        public string SiteName { get; set; } = "";
+        public double Amount { get; set; }
+        public bool IsIncome { get; set; }
+    }
+
+    string GetStatus(SiteStatus s) => s == SiteStatus.Active ? "Active" : s == SiteStatus.Completed ? "Done" : "Pause";
+    string GetBadge(SiteStatus s) => s == SiteStatus.Active ? "bg-success" : s == SiteStatus.Completed ? "bg-secondary" : "bg-warning";
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        var incomes = await FS.GetIncomes();
+        totalInc = incomes.Sum(i => i.Amount);
+        bal = await FS.Balance();
+        totalExp = totalInc - bal;
+        sites = await FS.GetSites(); var defSite = await FS.GetDefaultSite(); if (defSite != null) sites.Insert(0, defSite);
+        sexp = new();
+        foreach (var s in sites) sexp[s.Id] = await FS.SiteExp(s.Id);
+        var lastIncomes = incomes.Take(3).Select(i => new RecentOp { Date = i.Date, Description = i.Description ?? "Income", SiteName = i.Site?.Name ?? "", Amount = i.Amount, IsIncome = true });
+        var lastExpenses = (await FS.GetExpenses()).Take(3).Select(e => new RecentOp { Date = e.Date, Description = e.Description ?? "Expense", SiteName = e.Site?.Name ?? "", Amount = e.Amount, IsIncome = false });
+        recent = lastIncomes.Concat(lastExpenses).OrderByDescending(o => o.Date).Take(8).ToList();
+        loading = false;
+    }
+
+    void ShowAddIncome() { incAmt = 0; incDesc = ""; incDt = DateTime.Now; incSite = null; showIncome = true; }
+    async Task AddIncome() {
+        await FS.AddIncome(new Income { Amount = incAmt, Description = incDesc, Date = incDt, SiteId = incSite });
+        showIncome = false;
+        await Refresh();
+    }
+
+    void ShowAddExpense() { expAmt = 0; expDesc = ""; expDt = DateTime.Now; expSite = expCat = expSub = null; expCats = new(); expSubs = new(); showExpense = true; LoadCats(); }
+    async Task LoadCats() { expCats = await FS.GetCategories(); }
+    void LoadExpSubs() { expSub = null; if (expCat.HasValue && expCat > 0) { expSubs = expCats.FirstOrDefault(c => c.Id == expCat)?.Subcategories.ToList() ?? new(); } else { expSubs = new(); } }
+    async Task AddExpense() {
+        if (!expSite.HasValue) expSite = (await FS.GetDefaultSite())?.Id;
+        await FS.AddExpense(new Expense { Amount = expAmt, Description = expDesc, Date = expDt, SiteId = expSite, CategoryId = expCat, SubcategoryId = expSub });
+        showExpense = false;
+        await Refresh();
+    }
+
+    async Task Refresh() {
+        loading = true; StateHasChanged();
+        var incomes = await FS.GetIncomes();
+        totalInc = incomes.Sum(i => i.Amount);
+        bal = await FS.Balance();
+        totalExp = totalInc - bal;
+        sites = await FS.GetSites(); var defSite = await FS.GetDefaultSite(); if (defSite != null) sites.Insert(0, defSite);
+        sexp = new();
+        foreach (var s in sites) sexp[s.Id] = await FS.SiteExp(s.Id);
+        var lastIncomes = incomes.Take(3).Select(i => new RecentOp { Date = i.Date, Description = i.Description ?? "Income", SiteName = i.Site?.Name ?? "", Amount = i.Amount, IsIncome = true });
+        var lastExpenses = (await FS.GetExpenses()).Take(3).Select(e => new RecentOp { Date = e.Date, Description = e.Description ?? "Expense", SiteName = e.Site?.Name ?? "", Amount = e.Amount, IsIncome = false });
+        recent = lastIncomes.Concat(lastExpenses).OrderByDescending(o => o.Date).Take(8).ToList();
+        loading = false;
+    }
+}

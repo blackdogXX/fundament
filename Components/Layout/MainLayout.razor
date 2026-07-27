@@ -1,0 +1,83 @@
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
+
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><base href="/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Мгновенно применяем тему до отрисовки
+        (function() {
+            var t = localStorage.getItem('fundament-theme');
+            if (t) document.documentElement.setAttribute('data-bs-theme', t);
+            var a = localStorage.getItem('fundament-accent');
+            if (a) {
+                var ac = {blue:'#0d6efd',green:'#198754',orange:'#fd7e14',red:'#dc3545',gray:'#6c757d'};
+                document.documentElement.style.setProperty('--accent-color', ac[a] || ac.blue);
+            }
+        })();
+    </script>
+    <style>
+        .brand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #c1440e 0%, #d4693a 100%);
+            border-radius: 5px;
+            position: relative;
+            margin-right: 8px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
+        }
+        .brand-icon::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                linear-gradient(to bottom, transparent 0, transparent 9px, #e8d5c4 9px, #e8d5c4 11px, transparent 11px, transparent 21px, #e8d5c4 21px, #e8d5c4 23px, transparent 23px, transparent 32px),
+                linear-gradient(to right, transparent 0, transparent 9px, #e8d5c4 9px, #e8d5c4 11px, transparent 11px, transparent 21px, #e8d5c4 21px, #e8d5c4 23px, transparent 23px, transparent 32px);
+            border-radius: 5px;
+            opacity: 0.6;
+        }
+        .brand-icon span {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ffffff;
+            z-index: 1;
+            font-family: Georgia, serif;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .navbar-brand { font-weight: 800; letter-spacing: 1px; }
+        .card { transition: background-color 0.3s, color 0.3s; }
+        :root { --accent-color: #0d6efd; }
+        .navbar { background-color: var(--accent-color) !important; }
+        .bg-primary { background-color: var(--accent-color) !important; }
+        .btn-primary { background-color: var(--accent-color); border-color: var(--accent-color); }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-outline-primary { color: var(--accent-color); border-color: var(--accent-color); }
+        .btn-outline-primary:hover { background-color: var(--accent-color); color: #fff; }
+        .badge.bg-primary { background-color: var(--accent-color) !important; }
+        .text-primary { color: var(--accent-color) !important; }
+        a { color: var(--accent-color); }
+        .progress-bar { background-color: var(--accent-color) !important; }
+        .nav-link { color: rgba(255,255,255,0.8) !important; }
+        .nav-link:hover { color: #fff !important; }
+        .nav-link.active { color: #fff !important; background-color: rgba(255,255,255,0.15) !important; border-radius: 5px; }
+        .navbar-brand { color: #fff !important; }
+    </style>
+    <HeadOutlet />
+</head>
+<body>
+    <NavMenu />
+    <div class="container-fluid px-4">@Body</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/themes.js"></script>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

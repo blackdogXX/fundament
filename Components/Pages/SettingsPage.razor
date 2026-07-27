@@ -1,0 +1,81 @@
+@page "/settings"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject FinService FS
+@inject IJSRuntime JS
+
+<PageTitle>Fundament — Настройки</PageTitle>
+<h2 class="mb-4">Настройки</h2>
+
+@if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
+else if (saved) { <div class="alert alert-success">Сохранено!</div> }
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h5>Объект по умолчанию</h5></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Название</label>
+                    <input type="text" class="form-control" @bind="defaultSiteName" />
+                </div>
+                <button class="btn btn-primary" @onclick="SaveDefaultSite" disabled="@string.IsNullOrWhiteSpace(defaultSiteName)">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h5>Оформление</h5></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Тема</label>
+                    <select class="form-select" @bind="theme" @bind:after="OnThemeChanged">
+                        <option value="light">Светлая</option>
+                        <option value="dark">Тёмная</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Цветовая схема</label>
+                    <select class="form-select" @bind="accent" @bind:after="OnThemeChanged">
+                        <option value="blue">Синий</option>
+                        <option value="green">Зелёный</option>
+                        <option value="orange">Оранжевый</option>
+                        <option value="red">Красный</option>
+                        <option value="gray">Серый</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    bool loading = true, saved;
+    string defaultSiteName = "", theme = "light", accent = "blue";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var site = await FS.GetDefaultSite();
+        if (site != null) defaultSiteName = site.Name;
+
+        theme = await FS.GetSetting("theme") ?? "light";
+        accent = await FS.GetSetting("accent") ?? "blue";
+
+        loading = false;
+    }
+
+    async Task SaveDefaultSite()
+    {
+        await FS.UpdateDefaultSiteName(defaultSiteName);
+        saved = true;
+    }
+
+    async Task OnThemeChanged()
+    {
+        await FS.SetSetting("theme", theme);
+        await FS.SetSetting("accent", accent);
+        await JS.InvokeVoidAsync("applyTheme", theme, accent);
+        saved = true;
+    }
+}

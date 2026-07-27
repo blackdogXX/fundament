@@ -1,0 +1,17 @@
+@inject IJSRuntime JS
+<canvas id="@_id"></canvas>
+@code {
+    [Parameter] public string ChartType { get; set; } = "bar";
+    [Parameter] public string[] Labels { get; set; } = Array.Empty<string>();
+    [Parameter] public string[] Data { get; set; } = Array.Empty<string>();
+    [Parameter] public string Label { get; set; } = "Сумма";
+    private string _id = $"c_{Guid.NewGuid():N}";
+    private bool _rendered;
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender || !_rendered) { _rendered = true;
+            var colors = new[]{"rgba(255,99,132,0.7)","rgba(54,162,235,0.7)","rgba(255,206,86,0.7)","rgba(75,192,192,0.7)","rgba(153,102,255,0.7)","rgba(255,159,64,0.7)"};
+            var bg = Enumerable.Range(0, Data.Length).Select(i => colors[i % colors.Length]).ToArray();
+            await JS.InvokeVoidAsync("createChart", _id, ChartType, Labels, Data, Label, bg, bg);
+        }
+    }
+}

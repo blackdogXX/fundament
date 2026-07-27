@@ -1,0 +1,50 @@
+@page "/Account/Register"
+@using Microsoft.AspNetCore.Identity
+@using ConstructionFinance.Models
+@using ConstructionFinance.Data
+@inject UserManager<AppUser> UM
+@inject SignInManager<AppUser> SM
+@inject AppDbContext Ctx
+@inject NavigationManager Nav
+@layout LoginLayout
+<PageTitle>Fundament — Регистрация</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <h2 class="text-center mb-4">Регистрация</h2>
+        <EditForm Model="m" OnValidSubmit="DoRegister" FormName="f2">
+            <DataAnnotationsValidator />
+            <div class="mb-3"><label class="form-label">Email</label><InputText @bind-Value="m.Email" class="form-control" /><ValidationMessage For="() => m.Email" /></div>
+            <div class="mb-3">
+                <label class="form-label">Пароль</label>
+                <div class="input-group">
+                    <InputText @bind-Value="m.Pass" id="regPass" type="password" class="form-control" />
+                    <span class="input-group-text" onclick="toggleField('regPass','regPassIcon')" style="cursor:pointer;">
+                        <i class="bi bi-eye" id="regPassIcon"></i>
+                    </span>
+                </div>
+                <ValidationMessage For="() => m.Pass" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Подтверждение</label>
+                <div class="input-group">
+                    <InputText @bind-Value="m.Confirm" id="regConfirm" type="password" class="form-control" />
+                    <span class="input-group-text" onclick="toggleField('regConfirm','regConfirmIcon')" style="cursor:pointer;">
+                        <i class="bi bi-eye" id="regConfirmIcon"></i>
+                    </span>
+                </div>
+                <ValidationMessage For="() => m.Confirm" />
+            </div>
+            <p class="text-danger">@err</p>
+            <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+        </EditForm>
+        <div class="text-center mt-3"><a href="/Account/Login">Уже есть аккаунт?</a></div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm] private R m { get; set; } = new();
+    private string? err;
+    public class R { [Required] public string Email { get; set; } = ""; [Required] [MinLength(4)] public string Pass { get; set; } = ""; [Required] [Compare("Pass")] public string Confirm { get; set; } = ""; }
+    private async Task DoRegister() { var u = new AppUser { UserName = m.Email, Email = m.Email }; var r = await UM.CreateAsync(u, m.Pass); if (r.Succeeded) { await DbInit.CreateDefaults(Ctx, u.Id); await SM.SignInAsync(u, false); Nav.NavigateTo("/", forceLoad: true); } else err = string.Join("; ", r.Errors.Select(e => e.Description)); }
+}

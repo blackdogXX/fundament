@@ -1,0 +1,39 @@
+@page "/income"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject FinService FS
+<PageTitle>Fundament — Доходы</PageTitle>
+<div class="d-flex justify-content-between mb-4"><h2>Доходы</h2><button class="btn btn-success" @onclick="() => ShowAdd()"><i class="bi bi-plus-circle"></i> Добавить</button></div>
+@if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
+else { <div class="card"><div class="card-body">
+    @if (!items.Any()) { <p class="text-muted">Нет записей.</p> }
+    else { <table class="table table-hover"><thead><tr><th>Дата</th><th>Объект</th><th>Сумма</th><th>Описание</th><th></th></tr></thead><tbody>
+    @foreach (var i in items) { <tr><td>@i.Date.ToString("dd.MM.yyyy")</td><td>@(i.Site?.Name ?? "Без объекта")</td><td class="text-success">+@i.Amount.ToString("N2") руб</td><td>@i.Description</td><td>
+        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowEdit(i)"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-danger" @onclick="() => Del(i.Id)"><i class="bi bi-trash"></i></button>
+    </td></tr> }
+    </tbody></table>
+    <div class="text-end fw-bold p-2 border-top">ИТОГО: <span class="text-success">@items.Sum(i => i.Amount).ToString("N2") руб</span></div>
+    }
+</div></div> }
+@if (showModal) { <ModalDialog Title="@(editingId > 0 ? "Изменить доход" : "Добавить доход")" OnClose="HideModal">
+    <div class="mb-3"><label class="form-label">Сумма</label><input type="number" class="form-control" @bind="amt" step="0.01" min="0.01" /></div>
+    <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="dt" /></div>
+    <div class="mb-3"><label class="form-label">Объект (необязательно)</label><select class="form-select" @bind="sid"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div>
+    <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="desc" /></div>
+    <button class="btn btn-success" @onclick="Save" disabled="@(amt <= 0)">@(editingId > 0 ? "Сохранить" : "Добавить")</button>
+</ModalDialog> }
+@code {
+    bool loading = true, showModal; List<Income> items = new(); List<Site> sites = new(); double amt; string desc = ""; DateTime dt = DateTime.Now; int editingId; int? sid;
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load() { loading = true; items = await FS.GetIncomes(); sites = await FS.GetSites(); loading = false; }
+    void ShowAdd() { editingId = 0; amt = 0; desc = ""; dt = DateTime.Now; sid = null; showModal = true; }
+    void ShowEdit(Income i) { editingId = i.Id; amt = i.Amount; desc = i.Description ?? ""; dt = i.Date; sid = i.SiteId; showModal = true; }
+    void HideModal() => showModal = false;
+    async Task Save() {
+        if (editingId > 0) await FS.UpdateIncome(new Income { Id = editingId, Amount = amt, Description = desc, Date = dt, SiteId = sid });
+        else await FS.AddIncome(new Income { Amount = amt, Description = desc, Date = dt, SiteId = sid });
+        showModal = false; await Load();
+    }
+    async Task Del(int id) { await FS.DelIncome(id); await Load(); }
+}

@@ -1,0 +1,9 @@
+@page "/charts"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject FinService FS
+<PageTitle>Fundament — Графики</PageTitle>
+<h2>Графики расходов</h2>
+@if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
+else { <p>Здесь будут графики</p> }
+@code { bool loading = true; protected override async Task OnInitializedAsync() { loading = false; } }

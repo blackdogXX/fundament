@@ -1,0 +1,13 @@
+@page "/Account/Logout"
+@using Microsoft.AspNetCore.Identity
+@using ConstructionFinance.Models
+@inject SignInManager<AppUser> SM
+@inject NavigationManager Nav
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await SM.SignOutAsync();
+        Nav.NavigateTo("/Account/Login", forceLoad: true);
+    }
+}
