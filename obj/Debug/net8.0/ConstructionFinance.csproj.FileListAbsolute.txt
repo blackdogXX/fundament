@@ -1,3 +1,10 @@
+/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.csproj.AssemblyReference.cache
+/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.GeneratedMSBuildEditorConfig.editorconfig
+/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.AssemblyInfoInputs.cache
+/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.AssemblyInfo.cs
+/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.csproj.CoreCompileInputs.cache
+/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.MvcApplicationPartsAssemblyInfo.cache
+/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.sourcelink.json
 /home/blackdog/ConstructionFinance/bin/Debug/net8.0/appsettings.Development.json
 /home/blackdog/ConstructionFinance/bin/Debug/net8.0/appsettings.json
 /home/blackdog/ConstructionFinance/bin/Debug/net8.0/ConstructionFinance.staticwebassets.runtime.json
@@ -112,12 +119,6 @@
 /home/blackdog/ConstructionFinance/bin/Debug/net8.0/runtimes/win-arm64/native/e_sqlite3.dll
 /home/blackdog/ConstructionFinance/bin/Debug/net8.0/runtimes/win-x64/native/e_sqlite3.dll
 /home/blackdog/ConstructionFinance/bin/Debug/net8.0/runtimes/win-x86/native/e_sqlite3.dll
-/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.csproj.AssemblyReference.cache
-/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.GeneratedMSBuildEditorConfig.editorconfig
-/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.AssemblyInfoInputs.cache
-/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.AssemblyInfo.cs
-/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.csproj.CoreCompileInputs.cache
-/home/blackdog/ConstructionFinance/obj/Debug/net8.0/ConstructionFinance.MvcApplicationPartsAssemblyInfo.cache
 /home/blackdog/ConstructionFinance/obj/Debug/net8.0/staticwebassets.build.json
 /home/blackdog/ConstructionFinance/obj/Debug/net8.0/staticwebassets.development.json
 /home/blackdog/ConstructionFinance/obj/Debug/net8.0/staticwebassets/msbuild.ConstructionFinance.Microsoft.AspNetCore.StaticWebAssets.props

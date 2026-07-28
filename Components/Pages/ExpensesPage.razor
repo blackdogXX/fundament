@@ -19,20 +19,24 @@ else { @if (!items.Any()) { <div class="alert alert-info">Нет расходо�
     <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Категория</label><select class="form-select" @bind="cid" @bind:after="LoadSubs"><option value="">Без категории</option>@foreach (var c in cats) { <option value="@c.Id">@c.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Подкатегория</label><select class="form-select" @bind="subid"><option value="">Без подкатегории</option>@foreach (var s in subs) { <option value="@s.Id">@s.Name</option> }</select></div></div>
     <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="dt" /></div>
     <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="desc" /></div>
-    <button class="btn btn-danger" @onclick="Save" disabled="@(amt <= 0)">@(editingId > 0 ? "Сохранить" : "Добавить")</button>
+    @if (dupWarning) { <div class="alert alert-warning">Такая запись уже существует! Всё равно добавить?</div> }
+    <button class="btn btn-danger" @onclick="Save" disabled="@(amt <= 0)">@(editingId > 0 ? "Сохранить" : (dupWarning ? "Добавить повторно" : "Добавить"))</button>
 </ModalDialog> }
 @code {
-    bool loading = true, showModal; List<Expense> items = new(); List<Site> sites = new(); List<Category> cats = new(); List<Subcategory> subs = new();
+    bool loading = true, showModal, dupWarning; List<Expense> items = new(); List<Site> sites = new(); List<Category> cats = new(); List<Subcategory> subs = new();
     int? sid, cid, subid; double amt; string desc = ""; DateTime dt = DateTime.Now; int editingId;
     protected override async Task OnInitializedAsync() => await Load();
     async Task Load() { loading = true; items = await FS.GetExpenses(); sites = await FS.GetSites(); cats = await FS.GetCategories(); loading = false; }
-    void ShowAdd() { editingId = 0; sid = cid = subid = null; amt = 0; desc = ""; dt = DateTime.Now; subs = new(); showModal = true; }
-    void ShowEdit(Expense e) { editingId = e.Id; sid = e.SiteId; cid = e.CategoryId; subid = e.SubcategoryId; amt = e.Amount; desc = e.Description ?? ""; dt = e.Date; LoadSubs(); showModal = true; }
+    void ShowAdd() { editingId = 0; sid = cid = subid = null; amt = 0; desc = ""; dt = DateTime.Now; subs = new(); dupWarning = false; showModal = true; }
+    void ShowEdit(Expense e) { editingId = e.Id; sid = e.SiteId; cid = e.CategoryId; subid = e.SubcategoryId; amt = e.Amount; desc = e.Description ?? ""; dt = e.Date; LoadSubs(); dupWarning = false; showModal = true; }
     void HideModal() => showModal = false;
     void LoadSubs() { if (cid.HasValue && cid > 0) { subs = cats.FirstOrDefault(c => c.Id == cid)?.Subcategories.ToList() ?? new(); } else { subs = new(); } }
     async Task Save() {
         if (!sid.HasValue) sid = (await FS.GetDefaultSite())?.Id;
         var exp = new Expense { Amount = amt, Description = desc, Date = dt, SiteId = sid, CategoryId = cid, SubcategoryId = subid };
+        if (editingId == 0 && !dupWarning) {
+            if (await FS.ExpenseExists(exp)) { dupWarning = true; return; }
+        }
         if (editingId > 0) { exp.Id = editingId; await FS.UpdateExpense(exp); } else await FS.AddExpense(exp);
         showModal = false; await Load();
     }

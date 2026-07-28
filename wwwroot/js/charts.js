@@ -24,3 +24,11 @@ window.setTheme = function(theme, accent) {
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.setAttribute('data-accent', accent);
 })();
+
+window.downloadCsv = function(filename, text) {
+    var blob = new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+};

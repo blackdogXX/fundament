@@ -2,8 +2,163 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject FinService FS
-<PageTitle>Fundament — Графики</PageTitle>
-<h2>Графики расходов</h2>
+
+<PageTitle>Fundament — Анализ</PageTitle>
+<h2 class="mb-4">Анализ расходов</h2>
+
+<div class="card mb-4"><div class="card-body">
+    <div class="row align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Объект</label>
+            <select class="form-select" @bind="selSite" @bind:after="LoadData">
+                <option value="">Все объекты</option>
+                @foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }
+            </select>
+        </div>
+        <div class="col-md-4">
+            @if (!string.IsNullOrEmpty(csvHref))
+            {
+                <a class="btn btn-outline-success me-2" href="@csvHref" download="analysis.csv"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+            }
+            else
+            {
+                <button class="btn btn-outline-success me-2" @onclick="GenerateCsv"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+            }
+            <a class="btn btn-outline-danger" href="javascript:window.print()"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+        </div>
+    </div>
+</div></div>
+
 @if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
-else { <p>Здесь будут графики</p> }
-@code { bool loading = true; protected override async Task OnInitializedAsync() { loading = false; } }
+else {
+    <div class="card">
+        <div class="card-body">
+            @if (!catTable.Any()) {
+                <p class="text-muted text-center py-4">Нет данных</p>
+            } else {
+                var grandTotal = catTable.Sum(c => c.Total) + noCatTotal;
+                <table class="table table-hover">
+                    <thead><tr><th>Категория</th><th class="text-end">Сумма</th><th>%</th></tr></thead>
+                    <tbody>
+                        @foreach (var cat in catTable) {
+                            var pct = grandTotal > 0 ? cat.Total / grandTotal * 100 : 0;
+                            var isOpen = openCats.Contains(cat.Name);
+                            var hasSubs = cat.Subs.Any();
+                            <tr style="@(hasSubs ? "cursor:pointer;" : "")" @onclick="() => { if (hasSubs) ToggleCat(cat.Name); }">
+                                <td>
+                                    @if (hasSubs) { <i class="bi bi-chevron-@(isOpen ? "down" : "right") me-1"></i> }
+                                    @cat.Name
+                                </td>
+                                <td class="text-end text-danger">@cat.Total.ToString("N0")</td>
+                                <td>
+                                    <div class="progress" style="height:16px">
+                                        <div class="progress-bar" style="width:@pct.ToString("0.0")%">@pct.ToString("0.0")%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            @if (isOpen && hasSubs) {
+                                @foreach (var sub in cat.Subs) {
+                                    var subPct = cat.Total > 0 ? sub.Value / cat.Total * 100 : 0;
+                                    <tr class="table-light">
+                                        <td class="ps-4">@sub.Key</td>
+                                        <td class="text-end text-danger">@sub.Value.ToString("N0")</td>
+                                        <td>
+                                            <div class="progress" style="height:14px">
+                                                <div class="progress-bar bg-secondary" style="width:@subPct.ToString("0.0")%">@subPct.ToString("0.0")%</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        }
+                        @if (noCatTotal > 0) {
+                            var pct = grandTotal > 0 ? noCatTotal / grandTotal * 100 : 0;
+                            <tr>
+                                <td>Без категории</td>
+                                <td class="text-end text-danger">@noCatTotal.ToString("N0")</td>
+                                <td>
+                                    <div class="progress" style="height:16px">
+                                        <div class="progress-bar bg-secondary" style="width:@pct.ToString("0.0")%">@pct.ToString("0.0")%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        <tr class="table-active fw-bold">
+                            <td>ИТОГО</td>
+                            <td class="text-end text-danger">@grandTotal.ToString("N0")</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    bool loading = true;
+    List<Site> sites = new();
+    string? selSite, csvHref;
+    double noCatTotal;
+    HashSet<string> openCats = new();
+
+    class CatRow
+    {
+        public string Name { get; set; } = "";
+        public double Total { get; set; }
+        public Dictionary<string, double> Subs { get; set; } = new();
+    }
+
+    List<CatRow> catTable = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        sites = await FS.GetAllSites();
+        await LoadData();
+    }
+
+    async Task LoadData()
+    {
+        loading = true; StateHasChanged();
+        int? sf = string.IsNullOrEmpty(selSite) ? null : int.Parse(selSite);
+        var catData = await FS.ByCategory(sf);
+        var subData = await FS.BySubcategory(sf);
+        var cats = await FS.GetCategories();
+        var subToCat = new Dictionary<string, string>();
+        foreach (var c in cats) foreach (var s in c.Subcategories) subToCat[s.Name] = c.Name;
+        catTable = new();
+        foreach (var cat in catData.OrderByDescending(x => x.Value))
+        {
+            var row = new CatRow { Name = cat.Key, Total = cat.Value };
+            foreach (var sub in subData)
+                if (subToCat.ContainsKey(sub.Key) && subToCat[sub.Key] == cat.Key)
+                    row.Subs[sub.Key] = sub.Value;
+            catTable.Add(row);
+        }
+        var allExp = await FS.GetExpenses(sf);
+        noCatTotal = allExp.Where(e => e.CategoryId == null).Sum(e => e.Amount);
+        csvHref = null;
+        loading = false;
+    }
+
+    void ToggleCat(string cat) {
+        if (openCats.Contains(cat)) openCats.Remove(cat);
+        else openCats.Add(cat);
+    }
+
+    void GenerateCsv() {
+        var csv = "Категория;Подкатегория;Сумма;%\n";
+        var grandTotal = catTable.Sum(c => c.Total) + noCatTotal;
+        foreach (var cat in catTable) {
+            csv += $"{cat.Name};;{cat.Total};{(grandTotal > 0 ? cat.Total / grandTotal * 100 : 0):0.0}%\n";
+            foreach (var sub in cat.Subs)
+                csv += $";{sub.Key};{sub.Value};{(cat.Total > 0 ? sub.Value / cat.Total * 100 : 0):0.0}%\n";
+        }
+        if (noCatTotal > 0)
+            csv += $"Без категории;;{noCatTotal};{(grandTotal > 0 ? noCatTotal / grandTotal * 100 : 0):0.0}%\n";
+        csv += $"ИТОГО;;{grandTotal};\n";
+        
+        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("\ufeff" + csv));
+        csvHref = $"data:text/csv;charset=utf-8;base64,{base64}";
+    }
+}
