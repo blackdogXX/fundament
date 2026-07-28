@@ -7,7 +7,7 @@ public static class DbInit
     {
         using var s = sp.CreateScope();
         var ctx = s.ServiceProvider.GetRequiredService<AppDbContext>();
-        await ctx.Database.MigrateAsync();
+        await ctx.Database.EnsureCreatedAsync();
     }
     public static async Task CreateDefaults(AppDbContext ctx, string uid)
     {
