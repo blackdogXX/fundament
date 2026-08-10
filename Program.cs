@@ -8,7 +8,7 @@ using ConstructionFinance.Components;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=ConstructionFinance.db"));
+    options.UseSqlite("Data Source=data/ConstructionFinance.db"));
 
 builder.Services.AddAuthentication();
 
