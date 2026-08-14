@@ -45,7 +45,6 @@
     .btn-sm { min-height: 36px; }
 
     .table-responsive { -webkit-overflow-scrolling: touch; }
-    .table td, .table th { white-space: nowrap; }
 
     h1 { font-size: 1.5rem; }
     h2 { font-size: 1.3rem; }
@@ -94,4 +93,42 @@
 
 @media (min-width: 992px) {
     .bn-backdrop, .bn-sheet { display: none !important; }
+}
+
+/* горизонтальную прокрутку страницы не допускаем */
+html, body { overflow-x: hidden; max-width: 100%; }
+
+/* карточки записей */
+@media (max-width: 991.98px) {
+    .card > .card-body { padding: .6rem; }
+
+    .exp-card {
+        border: 1px solid rgba(0,0,0,.09);
+        border-radius: 10px;
+        padding: .7rem .8rem;
+        margin-bottom: .55rem;
+        background: var(--bs-body-bg, #fff);
+    }
+    .exp-card-top {
+        display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    }
+    .exp-card-sum { font-size: 1.25rem; font-weight: 700; }
+    .exp-card-actions { display: flex; gap: .35rem; flex-shrink: 0; }
+    .exp-card-actions .btn { min-height: 34px; padding: .2rem .55rem; }
+    .exp-card-site { font-weight: 600; margin-top: .15rem; }
+    .exp-card-meta { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+    .exp-chip {
+        font-size: .74rem; padding: .16rem .5rem; border-radius: 20px;
+        background: rgba(0,0,0,.06); color: #495057; white-space: nowrap;
+    }
+    .exp-chip-sub { background: rgba(193,68,14,.1); color: #c1440e; }
+    .exp-card-bottom {
+        display: flex; flex-wrap: wrap; gap: .5rem;
+        margin-top: .45rem; font-size: .8rem; color: #6c757d;
+    }
+    .exp-card-desc { font-style: italic; }
+
+    /* шапка страницы: заголовок и кнопка в строку */
+    .d-flex.justify-content-between.mb-4 { margin-bottom: 1rem !important; align-items: center; }
+    .d-flex.justify-content-between.mb-4 h2 { margin: 0; }
 }

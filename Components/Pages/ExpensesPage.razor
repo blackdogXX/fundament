@@ -6,12 +6,35 @@
 <div class="d-flex justify-content-between mb-4"><h2>Расходы</h2><button class="btn btn-danger" @onclick="ShowAdd"><i class="bi bi-dash-circle"></i> Добавить</button></div>
 @if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
 else { @if (!items.Any()) { <div class="alert alert-info">Нет расходов.</div> } else { <div class="card"><div class="card-body">
-<table class="table table-hover"><thead><tr><th>Дата</th><th>Объект</th><th>Категория</th><th>Подкатегория</th><th>Сумма</th><th>Описание</th><th></th></tr></thead><tbody>
+<div class="d-none d-lg-block"><table class="table table-hover"><thead><tr><th>Дата</th><th>Объект</th><th>Категория</th><th>Подкатегория</th><th>Сумма</th><th>Описание</th><th></th></tr></thead><tbody>
     @foreach (var e in items) { <tr><td>@e.Date.ToString("dd.MM.yyyy")</td><td>@(e.Site?.Name ?? "Без объекта")</td><td>@(e.Category?.Name ?? "Без категории")</td><td>@(e.Subcategory?.Name ?? "Без подкатегории")</td><td class="text-danger">-@e.Amount.ToString("N2") руб</td><td><small>@e.Description</small></td><td>
         <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowEdit(e)"><i class="bi bi-pencil"></i></button>
         <button class="btn btn-sm btn-danger" @onclick="() => Del(e.Id)"><i class="bi bi-trash"></i></button>
     </td></tr> }
-</tbody></table>
+</tbody></table></div>
+<div class="d-lg-none">
+@foreach (var e in items) {
+    <div class="exp-card">
+        <div class="exp-card-top">
+            <div class="exp-card-sum text-danger">-@e.Amount.ToString("N0") ₽</div>
+            <div class="exp-card-actions">
+                <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEdit(e)"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-danger" @onclick="() => Del(e.Id)"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+        <div class="exp-card-site">@(e.Site?.Name ?? "Без объекта")</div>
+        <div class="exp-card-meta">
+            <span class="exp-chip">@(e.Category?.Name ?? "Без категории")</span>
+            @if (e.Subcategory != null) { <span class="exp-chip exp-chip-sub">@e.Subcategory.Name</span> }
+        </div>
+        <div class="exp-card-bottom">
+            <span>@e.Date.ToString("dd.MM.yyyy")</span>
+            @if (!string.IsNullOrWhiteSpace(e.Description)) { <span class="exp-card-desc">@e.Description</span> }
+        </div>
+    </div>
+}
+</div>
+
 <div class="text-end fw-bold p-2 border-top">ИТОГО: <span class="text-danger">@items.Sum(e => e.Amount).ToString("N2") руб</span></div>
 </div></div> } }
 @if (showModal) { <ModalDialog Title="@(editingId > 0 ? "Изменить расход" : "Добавить расход")" OnClose="HideModal" DialogClass="modal-lg">
