@@ -10,6 +10,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=data/ConstructionFinance.db"));
 
+var keysPath = builder.Configuration["DbPath"] is string dbp
+    ? Path.Combine(Path.GetDirectoryName(dbp) ?? "data", "keys")
+    : "data/keys";
+Directory.CreateDirectory(keysPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+    .SetApplicationName("Fundament");
+
 builder.Services.AddAuthentication();
 
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
