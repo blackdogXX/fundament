@@ -1,3 +1,6 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
 <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
     <div class="modal-dialog @DialogClass">
         <div class="modal-content">
@@ -14,4 +17,17 @@
     [Parameter] public string DialogClass { get; set; } = "";
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("lockBodyScroll", true); } catch { }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("lockBodyScroll", false); } catch { }
+    }
 }

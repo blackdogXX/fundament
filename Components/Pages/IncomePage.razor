@@ -36,7 +36,7 @@ else { <div class="card"><div class="card-body">
     }
 </div></div> }
 @if (showModal) { <ModalDialog Title="@(editingId > 0 ? "Изменить доход" : "Добавить доход")" OnClose="HideModal">
-    <div class="mb-3"><label class="form-label">Сумма</label><input type="number" class="form-control" @bind="amt" step="0.01" min="0.01" /></div>
+    <div class="mb-3"><label class="form-label">Сумма</label><div class="input-group input-group-amount"><input type="number" inputmode="decimal" class="form-control amount-input" @bind="amt" step="0.01" min="0.01" placeholder="0" /><span class="input-group-text">₽</span></div></div>
     <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="dt" /></div>
     <div class="mb-3"><label class="form-label">Объект (необязательно)</label><select class="form-select" @bind="sid"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div>
     <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="desc" /></div>

@@ -124,7 +124,7 @@ else {
 @* Модальное окно добавления дохода *@
 @if (showIncome) {
     <ModalDialog Title="Добавить доход" OnClose="() => showIncome = false">
-        <div class="mb-3"><label class="form-label">Сумма</label><input type="number" class="form-control" @bind="incAmt" step="0.01" min="0.01" /></div>
+        <div class="mb-3"><label class="form-label">Сумма</label><div class="input-group input-group-amount"><input type="number" inputmode="decimal" class="form-control amount-input" @bind="incAmt" step="0.01" min="0.01" placeholder="0" /><span class="input-group-text">₽</span></div></div>
         <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="incDt" /></div>
         <div class="mb-3"><label class="form-label">Объект</label><select class="form-select" @bind="incSite"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div>
         <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="incDesc" /></div>
@@ -135,7 +135,7 @@ else {
 @* Модальное окно добавления расхода *@
 @if (showExpense) {
     <ModalDialog Title="Добавить расход" OnClose="() => showExpense = false" DialogClass="modal-lg">
-        <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Объект</label><select class="form-select" @bind="expSite"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Сумма *</label><input type="number" class="form-control" @bind="expAmt" step="0.01" min="0.01" /></div></div>
+        <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Объект</label><select class="form-select" @bind="expSite"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Сумма *</label><div class="input-group input-group-amount"><input type="number" inputmode="decimal" class="form-control amount-input" @bind="expAmt" step="0.01" min="0.01" placeholder="0" /><span class="input-group-text">₽</span></div></div></div>
         <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Категория</label><select class="form-select" @bind="expCat" @bind:after="LoadExpSubs"><option value="">Без категории</option>@foreach (var c in expCats) { <option value="@c.Id">@c.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Подкатегория</label><select class="form-select" @bind="expSub"><option value="">Без подкатегории</option>@foreach (var s in expSubs) { <option value="@s.Id">@s.Name</option> }</select></div></div>
         <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="expDt" /></div>
         <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="expDesc" /></div>
