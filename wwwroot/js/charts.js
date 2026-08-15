@@ -20,7 +20,7 @@ window.setTheme = function(theme, accent) {
 // При загрузке страницы — применить сохранённую тему
 (function() {
     var theme = localStorage.getItem('theme') || 'light';
-    var accent = localStorage.getItem('accent') || 'blue';
+    var accent = localStorage.getItem('accent') || 'brand';
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.setAttribute('data-accent', accent);
 })();

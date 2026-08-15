@@ -1,4 +1,4 @@
-const CACHE = 'fundament-v3';
+const CACHE = 'fundament-v4';
 const ASSETS = [
   '/offline.html',
   '/icons/icon-192.png',

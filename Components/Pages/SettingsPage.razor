@@ -38,6 +38,7 @@ else if (saved) { <div class="alert alert-success">Сохранено!</div> }
                 <div class="mb-3">
                     <label class="form-label">Цветовая схема</label>
                     <select class="form-select" @bind="accent" @bind:after="OnThemeChanged">
+                        <option value="brand">Кирпичный (фирменный)</option>
                         <option value="blue">Синий</option>
                         <option value="green">Зелёный</option>
                         <option value="orange">Оранжевый</option>
@@ -52,7 +53,7 @@ else if (saved) { <div class="alert alert-success">Сохранено!</div> }
 
 @code {
     bool loading = true, saved;
-    string defaultSiteName = "", theme = "light", accent = "blue";
+    string defaultSiteName = "", theme = "light", accent = "brand";
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,7 +61,7 @@ else if (saved) { <div class="alert alert-success">Сохранено!</div> }
         if (site != null) defaultSiteName = site.Name;
 
         theme = await FS.GetSetting("theme") ?? "light";
-        accent = await FS.GetSetting("accent") ?? "blue";
+        accent = await FS.GetSetting("accent") ?? "brand";
 
         loading = false;
     }

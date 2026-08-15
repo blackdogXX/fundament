@@ -24,7 +24,7 @@ else { @if (!items.Any()) { <div class="alert alert-info">Нет расходо�
         </div>
         <div class="exp-card-site">@(e.Site?.Name ?? "Без объекта")</div>
         <div class="exp-card-meta">
-            <span class="exp-chip">@(e.Category?.Name ?? "Без категории")</span>
+            <span class="exp-chip" style="background:@CatBg(e.Category?.Name ?? "Без категории");color:@CatFg(e.Category?.Name ?? "Без категории")">@(e.Category?.Name ?? "Без категории")</span>
             @if (e.Subcategory != null) { <span class="exp-chip exp-chip-sub">@e.Subcategory.Name</span> }
         </div>
         <div class="exp-card-bottom">
@@ -46,6 +46,14 @@ else { @if (!items.Any()) { <div class="alert alert-info">Нет расходо�
     <button class="btn btn-danger" @onclick="Save" disabled="@(amt <= 0)">@(editingId > 0 ? "Сохранить" : (dupWarning ? "Добавить повторно" : "Добавить"))</button>
 </ModalDialog> }
 @code {
+    static int Hue(string name) {
+        int h = 0;
+        foreach (char c in name) h = ((h << 5) - h) + c;
+        return Math.Abs(h) % 360;
+    }
+    static string CatBg(string name) => $"hsl({Hue(name)}, 55%, 88%)";
+    static string CatFg(string name) => $"hsl({Hue(name)}, 55%, 30%)";
+
     bool loading = true, showModal, dupWarning; List<Expense> items = new(); List<Site> sites = new(); List<Category> cats = new(); List<Subcategory> subs = new();
     int? sid, cid, subid; double amt; string desc = ""; DateTime dt = DateTime.Now; int editingId;
     protected override async Task OnInitializedAsync() => await Load();

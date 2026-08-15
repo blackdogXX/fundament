@@ -1,18 +1,18 @@
 window.applyTheme = function(theme, accent) {
     var html = document.documentElement;
     html.setAttribute('data-bs-theme', theme === 'dark' ? 'dark' : 'light');
-    var accents = { blue: '#0d6efd', green: '#198754', orange: '#fd7e14', red: '#dc3545', gray: '#6c757d' };
-    html.style.setProperty('--accent-color', accents[accent] || accents.blue);
+    var accents = { brand: '#c1440e', blue: '#0d6efd', green: '#198754', orange: '#fd7e14', red: '#dc3545', gray: '#6c757d' };
+    html.style.setProperty('--accent-color', accents[accent] || accents.brand);
     localStorage.setItem('fundament-theme', theme);
     localStorage.setItem('fundament-accent', accent);
 };
 
 window.restoreTheme = function() {
     var t = localStorage.getItem('fundament-theme') || 'light';
-    var a = localStorage.getItem('fundament-accent') || 'blue';
-    var accents = { blue: '#0d6efd', green: '#198754', orange: '#fd7e14', red: '#dc3545', gray: '#6c757d' };
+    var a = localStorage.getItem('fundament-accent') || 'brand';
+    var accents = { brand: '#c1440e', blue: '#0d6efd', green: '#198754', orange: '#fd7e14', red: '#dc3545', gray: '#6c757d' };
     document.documentElement.setAttribute('data-bs-theme', t);
-    document.documentElement.style.setProperty('--accent-color', accents[a] || accents.blue);
+    document.documentElement.style.setProperty('--accent-color', accents[a] || accents.brand);
 };
 
 restoreTheme();
