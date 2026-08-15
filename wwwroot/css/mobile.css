@@ -132,3 +132,17 @@ html, body { overflow-x: hidden; max-width: 100%; }
     .d-flex.justify-content-between.mb-4 { margin-bottom: 1rem !important; align-items: center; }
     .d-flex.justify-content-between.mb-4 h2 { margin: 0; }
 }
+
+/* цветная метка категории — везде, не только на мобильном */
+.cat-dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    margin-right: 7px;
+    vertical-align: middle;
+}
+
+/* подпись процента снаружи узкой полоски прогресса */
+.pct-wrap { display: flex; align-items: center; gap: 6px; }
+.pct-wrap .progress { flex: 1 1 auto; }
+.pct-outside { font-size: .8rem; color: #6c757d; white-space: nowrap; flex-shrink: 0; }

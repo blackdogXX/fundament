@@ -7,7 +7,7 @@
 @if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
 else { @if (!items.Any()) { <div class="alert alert-info">Нет расходов.</div> } else { <div class="card"><div class="card-body">
 <div class="d-none d-lg-block"><table class="table table-hover"><thead><tr><th>Дата</th><th>Объект</th><th>Категория</th><th>Подкатегория</th><th>Сумма</th><th>Описание</th><th></th></tr></thead><tbody>
-    @foreach (var e in items) { <tr><td>@e.Date.ToString("dd.MM.yyyy")</td><td>@(e.Site?.Name ?? "Без объекта")</td><td>@(e.Category?.Name ?? "Без категории")</td><td>@(e.Subcategory?.Name ?? "Без подкатегории")</td><td class="text-danger">-@e.Amount.ToString("N2") руб</td><td><small>@e.Description</small></td><td>
+    @foreach (var e in items) { <tr><td>@e.Date.ToString("dd.MM.yyyy")</td><td>@(e.Site?.Name ?? "Без объекта")</td><td><span class="cat-dot" style="background:@CatFg(e.Category?.Name ?? "Без категории")"></span>@(e.Category?.Name ?? "Без категории")</td><td>@(e.Subcategory?.Name ?? "Без подкатегории")</td><td class="text-danger">-@e.Amount.ToString("N2") руб</td><td><small>@e.Description</small></td><td>
         <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowEdit(e)"><i class="bi bi-pencil"></i></button>
         <button class="btn btn-sm btn-danger" @onclick="() => Del(e.Id)"><i class="bi bi-trash"></i></button>
     </td></tr> }

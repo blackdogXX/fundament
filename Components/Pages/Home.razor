@@ -75,8 +75,11 @@ else {
                                         <td><span class="badge @GetBadge(s.Status)">@GetStatus(s.Status)</span></td>
                                         <td class="text-end text-danger">@se.ToString("N0")</td>
                                         <td>
-                                            <div class="progress" style="height:18px">
-                                                <div class="progress-bar" style="width:@pct.ToString("0.0")%">@pct.ToString("0.0")%</div>
+                                            <div class="pct-wrap">
+                                                <div class="progress" style="height:18px">
+                                                    <div class="progress-bar" style="width:@pct.ToString("0.0")%">@(pct >= 12 ? pct.ToString("0.0") + "%" : "")</div>
+                                                </div>
+                                                @if (pct < 12) { <span class="pct-outside">@pct.ToString("0.0")%</span> }
                                             </div>
                                         </td>
                                     </tr>

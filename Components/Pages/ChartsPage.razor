@@ -51,8 +51,11 @@ else {
                                 </td>
                                 <td class="text-end text-danger">@cat.Total.ToString("N0")</td>
                                 <td>
-                                    <div class="progress" style="height:16px">
-                                        <div class="progress-bar" style="width:@pct.ToString("0.0")%">@pct.ToString("0.0")%</div>
+                                    <div class="pct-wrap">
+                                        <div class="progress" style="height:16px">
+                                            <div class="progress-bar" style="width:@pct.ToString("0.0")%">@(pct >= 12 ? pct.ToString("0.0") + "%" : "")</div>
+                                        </div>
+                                        @if (pct < 12) { <span class="pct-outside">@pct.ToString("0.0")%</span> }
                                     </div>
                                 </td>
                             </tr>
@@ -63,8 +66,11 @@ else {
                                         <td class="ps-4">@sub.Key</td>
                                         <td class="text-end text-danger">@sub.Value.ToString("N0")</td>
                                         <td>
-                                            <div class="progress" style="height:14px">
-                                                <div class="progress-bar bg-secondary" style="width:@subPct.ToString("0.0")%">@subPct.ToString("0.0")%</div>
+                                            <div class="pct-wrap">
+                                                <div class="progress" style="height:14px">
+                                                    <div class="progress-bar bg-secondary" style="width:@subPct.ToString("0.0")%">@(subPct >= 12 ? subPct.ToString("0.0") + "%" : "")</div>
+                                                </div>
+                                                @if (subPct < 12) { <span class="pct-outside">@subPct.ToString("0.0")%</span> }
                                             </div>
                                         </td>
                                     </tr>
@@ -77,8 +83,11 @@ else {
                                 <td>Без категории</td>
                                 <td class="text-end text-danger">@noCatTotal.ToString("N0")</td>
                                 <td>
-                                    <div class="progress" style="height:16px">
-                                        <div class="progress-bar bg-secondary" style="width:@pct.ToString("0.0")%">@pct.ToString("0.0")%</div>
+                                    <div class="pct-wrap">
+                                        <div class="progress" style="height:16px">
+                                            <div class="progress-bar bg-secondary" style="width:@pct.ToString("0.0")%">@(pct >= 12 ? pct.ToString("0.0") + "%" : "")</div>
+                                        </div>
+                                        @if (pct < 12) { <span class="pct-outside">@pct.ToString("0.0")%</span> }
                                     </div>
                                 </td>
                             </tr>
