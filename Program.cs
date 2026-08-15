@@ -4,6 +4,7 @@ using ConstructionFinance.Data;
 using ConstructionFinance.Models;
 using ConstructionFinance.Services;
 using ConstructionFinance.Components;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
