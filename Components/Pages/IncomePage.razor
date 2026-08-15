@@ -7,12 +7,31 @@
 @if (loading) { <div class="text-center"><div class="spinner-border"></div></div> }
 else { <div class="card"><div class="card-body">
     @if (!items.Any()) { <p class="text-muted">Нет записей.</p> }
-    else { <table class="table table-hover"><thead><tr><th>Дата</th><th>Объект</th><th>Сумма</th><th>Описание</th><th></th></tr></thead><tbody>
+    else { <div class="d-none d-lg-block"><table class="table table-hover"><thead><tr><th>Дата</th><th>Объект</th><th>Сумма</th><th>Описание</th><th></th></tr></thead><tbody>
     @foreach (var i in items) { <tr><td>@i.Date.ToString("dd.MM.yyyy")</td><td>@(i.Site?.Name ?? "Без объекта")</td><td class="text-success">+@i.Amount.ToString("N2") руб</td><td>@i.Description</td><td>
         <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowEdit(i)"><i class="bi bi-pencil"></i></button>
         <button class="btn btn-sm btn-danger" @onclick="() => Del(i.Id)"><i class="bi bi-trash"></i></button>
     </td></tr> }
-    </tbody></table>
+    </tbody></table></div>
+<div class="d-lg-none">
+@foreach (var i in items) {
+    <div class="exp-card">
+        <div class="exp-card-top">
+            <div class="exp-card-sum text-success">+@i.Amount.ToString("N0") ₽</div>
+            <div class="exp-card-actions">
+                <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEdit(i)"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-danger" @onclick="() => Del(i.Id)"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+        <div class="exp-card-site">@(i.Site?.Name ?? "Без объекта")</div>
+        <div class="exp-card-bottom">
+            <span>@i.Date.ToString("dd.MM.yyyy")</span>
+            @if (!string.IsNullOrWhiteSpace(i.Description)) { <span class="exp-card-desc">@i.Description</span> }
+        </div>
+    </div>
+}
+</div>
+
     <div class="text-end fw-bold p-2 border-top">ИТОГО: <span class="text-success">@items.Sum(i => i.Amount).ToString("N2") руб</span></div>
     }
 </div></div> }
