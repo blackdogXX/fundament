@@ -128,7 +128,7 @@ else {
         <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="incDt" /></div>
         <div class="mb-3"><label class="form-label">Объект</label><select class="form-select" @bind="incSite"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div>
         <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="incDesc" /></div>
-        <button class="btn btn-success" @onclick="AddIncome" disabled="@(incAmt <= 0)">Добавить</button>
+        <button class="btn btn-success" @onclick="AddIncome" disabled="@(incAmt is null or <= 0)">Добавить</button>
     </ModalDialog>
 }
 
@@ -139,7 +139,7 @@ else {
         <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Категория</label><select class="form-select" @bind="expCat" @bind:after="LoadExpSubs"><option value="">Без категории</option>@foreach (var c in expCats) { <option value="@c.Id">@c.Name</option> }</select></div><div class="col-md-6 mb-3"><label class="form-label">Подкатегория</label><select class="form-select" @bind="expSub"><option value="">Без подкатегории</option>@foreach (var s in expSubs) { <option value="@s.Id">@s.Name</option> }</select></div></div>
         <div class="mb-3"><label class="form-label">Дата</label><input type="date" class="form-control" @bind="expDt" /></div>
         <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="expDesc" /></div>
-        <button class="btn btn-danger" @onclick="AddExpense" disabled="@(expAmt <= 0)">Добавить</button>
+        <button class="btn btn-danger" @onclick="AddExpense" disabled="@(expAmt is null or <= 0)">Добавить</button>
     </ModalDialog>
 }
 
@@ -151,9 +151,9 @@ else {
     List<RecentOp> recent = new();
 
     // Поля для дохода
-    double incAmt; string incDesc = ""; DateTime incDt = DateTime.Now; int? incSite;
+    double? incAmt; string incDesc = ""; DateTime incDt = DateTime.Now; int? incSite;
     // Поля для расхода
-    double expAmt; string expDesc = ""; DateTime expDt = DateTime.Now; int? expSite, expCat, expSub;
+    double? expAmt; string expDesc = ""; DateTime expDt = DateTime.Now; int? expSite, expCat, expSub;
     List<Category> expCats = new();
     List<Subcategory> expSubs = new();
 
@@ -185,19 +185,19 @@ else {
         loading = false;
     }
 
-    void ShowAddIncome() { incAmt = 0; incDesc = ""; incDt = DateTime.Now; incSite = null; showIncome = true; }
+    void ShowAddIncome() { incAmt = null; incDesc = ""; incDt = DateTime.Now; incSite = null; showIncome = true; }
     async Task AddIncome() {
-        await FS.AddIncome(new Income { Amount = incAmt, Description = incDesc, Date = incDt, SiteId = incSite });
+        await FS.AddIncome(new Income { Amount = incAmt!.Value, Description = incDesc, Date = incDt, SiteId = incSite });
         showIncome = false;
         await Refresh();
     }
 
-    void ShowAddExpense() { expAmt = 0; expDesc = ""; expDt = DateTime.Now; expSite = expCat = expSub = null; expCats = new(); expSubs = new(); showExpense = true; LoadCats(); }
+    void ShowAddExpense() { expAmt = null; expDesc = ""; expDt = DateTime.Now; expSite = expCat = expSub = null; expCats = new(); expSubs = new(); showExpense = true; LoadCats(); }
     async Task LoadCats() { expCats = await FS.GetCategories(); }
     void LoadExpSubs() { expSub = null; if (expCat.HasValue && expCat > 0) { expSubs = expCats.FirstOrDefault(c => c.Id == expCat)?.Subcategories.ToList() ?? new(); } else { expSubs = new(); } }
     async Task AddExpense() {
         if (!expSite.HasValue) expSite = (await FS.GetDefaultSite())?.Id;
-        await FS.AddExpense(new Expense { Amount = expAmt, Description = expDesc, Date = expDt, SiteId = expSite, CategoryId = expCat, SubcategoryId = expSub });
+        await FS.AddExpense(new Expense { Amount = expAmt!.Value, Description = expDesc, Date = expDt, SiteId = expSite, CategoryId = expCat, SubcategoryId = expSub });
         showExpense = false;
         await Refresh();
     }
