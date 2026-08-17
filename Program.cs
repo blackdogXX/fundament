@@ -44,6 +44,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<FinService>();
 builder.Services.AddScoped<BackupService>();
+builder.Services.AddScoped<AdminService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -51,6 +52,7 @@ builder.Services.AddRazorComponents()
 var app = builder.Build();
 
 await DbInit.InitAsync(app.Services);
+await DbInit.EnsureAdminAsync(app.Services, builder.Configuration["ADMIN_EMAIL"]);
 
 if (!app.Environment.IsDevelopment())
 {

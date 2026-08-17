@@ -6,3 +6,4 @@ data/
 *.db-wal
 *.tar.gz
 *.bak
+.env

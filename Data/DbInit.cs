@@ -1,14 +1,35 @@
 using ConstructionFinance.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 namespace ConstructionFinance.Data;
 public static class DbInit
 {
+    public const string AdminRole = "Admin";
+
     public static async Task InitAsync(IServiceProvider sp)
     {
         using var s = sp.CreateScope();
         var ctx = s.ServiceProvider.GetRequiredService<AppDbContext>();
         await ctx.Database.EnsureCreatedAsync();
     }
+
+    // Создаёт роль Admin (если её ещё нет) и выдаёт её пользователю с email из ADMIN_EMAIL,
+    // если такой пользователь уже зарегистрирован. Ничего не ломает, если ADMIN_EMAIL не задан.
+    public static async Task EnsureAdminAsync(IServiceProvider sp, string? adminEmail)
+    {
+        using var s = sp.CreateScope();
+        var roleMgr = s.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        if (!await roleMgr.RoleExistsAsync(AdminRole))
+            await roleMgr.CreateAsync(new IdentityRole(AdminRole));
+
+        if (string.IsNullOrWhiteSpace(adminEmail)) return;
+
+        var userMgr = s.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var user = await userMgr.FindByEmailAsync(adminEmail);
+        if (user != null && !await userMgr.IsInRoleAsync(user, AdminRole))
+            await userMgr.AddToRoleAsync(user, AdminRole);
+    }
+
     public static async Task CreateDefaults(AppDbContext ctx, string uid)
     {
         if (!await ctx.Categories.AnyAsync(c => c.UserId == uid))

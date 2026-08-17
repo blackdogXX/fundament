@@ -28,6 +28,13 @@
     <a class="bn-sheet-item" href="/settings" data-enhance-nav="false">
         <i class="bi bi-gear"></i> Настройки
     </a>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <a class="bn-sheet-item" href="/admin" data-enhance-nav="false">
+                <i class="bi bi-shield-lock"></i> Админка
+            </a>
+        </Authorized>
+    </AuthorizeView>
     <AuthorizeView>
         <Authorized>
             <a class="bn-sheet-item text-danger" href="/Account/Logout" data-enhance-nav="false">

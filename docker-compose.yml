@@ -6,4 +6,6 @@ services:
       - "5000:5000"
     volumes:
       - ./data:/app/data
+    environment:
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
     restart: unless-stopped

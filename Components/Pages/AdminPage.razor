@@ -1,0 +1,207 @@
+@page "/admin"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AdminService AS
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Fundament — Админка</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Пользователи</h2>
+    <button class="btn btn-success" @onclick="ShowAdd"><i class="bi bi-person-plus"></i> Добавить</button>
+</div>
+
+@if (err != null)
+{
+    <div class="alert alert-danger alert-dismissible">@err <button type="button" class="btn-close" @onclick="() => err = null"></button></div>
+}
+@if (ok != null)
+{
+    <div class="alert alert-success alert-dismissible">@ok <button type="button" class="btn-close" @onclick="() => ok = null"></button></div>
+}
+
+@if (loading)
+{
+    <div class="text-center"><div class="spinner-border"></div></div>
+}
+else if (!users.Any())
+{
+    <div class="alert alert-info">Пользователей нет.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Регистрация</th>
+                    <th>Баланс</th>
+                    <th>Доходы</th>
+                    <th>Расходы</th>
+                    <th>Объектов</th>
+                    <th>Записей</th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in users)
+                {
+                    <tr>
+                        <td>@u.Email</td>
+                        <td class="text-muted small">@(u.RegisteredAt?.ToString("dd.MM.yyyy") ?? "—")</td>
+                        <td class="@(u.Balance >= 0 ? "text-success" : "text-danger")">@u.Balance.ToString("N2") ₽</td>
+                        <td class="text-muted small">@u.IncomeTotal.ToString("N2") ₽</td>
+                        <td class="text-muted small">@u.ExpenseTotal.ToString("N2") ₽</td>
+                        <td>@u.SitesCount</td>
+                        <td>@(u.IncomesCount + u.ExpensesCount)</td>
+                        <td>@if (u.IsAdmin) { <span class="badge bg-primary">Admin</span> }</td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" title="Изменить email" @onclick="() => ShowEdit(u)"><i class="bi bi-envelope"></i></button>
+                                <button class="btn btn-sm btn-outline-secondary" title="Сбросить пароль" @onclick="() => ShowPass(u)"><i class="bi bi-key"></i></button>
+                                <button class="btn btn-sm btn-outline-@(u.IsAdmin ? "warning" : "secondary")" title="@(u.IsAdmin ? "Забрать права администратора" : "Сделать администратором")" @onclick="() => ToggleAdmin(u)"><i class="bi bi-shield-lock"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" title="Удалить" @onclick="() => ShowDelete(u)" disabled="@(u.Id == currentUserId)"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@* Добавить пользователя *@
+@if (showAdd)
+{
+    <ModalDialog Title="Новый пользователь" OnClose="HideModals">
+        <div class="mb-3"><label class="form-label">Email</label><input type="text" class="form-control" @bind="addEmail" /></div>
+        <div class="mb-3"><label class="form-label">Пароль</label><input type="text" class="form-control" @bind="addPassword" /></div>
+        <p class="text-danger small">@modalErr</p>
+        <button class="btn btn-success" @onclick="DoAdd" disabled="@(string.IsNullOrWhiteSpace(addEmail) || string.IsNullOrWhiteSpace(addPassword) || busy)">Создать</button>
+    </ModalDialog>
+}
+
+@* Изменить email *@
+@if (showEdit)
+{
+    <ModalDialog Title="@("Email: " + editTarget?.Email)" OnClose="HideModals">
+        <div class="mb-3"><label class="form-label">Новый email</label><input type="text" class="form-control" @bind="editEmail" /></div>
+        <p class="text-danger small">@modalErr</p>
+        <button class="btn btn-primary" @onclick="DoEdit" disabled="@(string.IsNullOrWhiteSpace(editEmail) || busy)">Сохранить</button>
+    </ModalDialog>
+}
+
+@* Сброс пароля *@
+@if (showPass)
+{
+    <ModalDialog Title="@("Новый пароль: " + passTarget?.Email)" OnClose="HideModals">
+        <div class="mb-3"><label class="form-label">Новый пароль</label><input type="text" class="form-control" @bind="newPassword" /></div>
+        <p class="text-danger small">@modalErr</p>
+        <button class="btn btn-primary" @onclick="DoPass" disabled="@(string.IsNullOrWhiteSpace(newPassword) || busy)">Сохранить</button>
+    </ModalDialog>
+}
+
+@* Удаление *@
+@if (showDelete)
+{
+    <ModalDialog Title="Удаление пользователя" OnClose="HideModals">
+        <div class="alert alert-danger">
+            <p>Удалить пользователя <strong>@delTarget?.Email</strong>?</p>
+            <p class="mb-0 small">Будут безвозвратно удалены все его доходы, расходы, объекты и категории. Действие необратимо.</p>
+        </div>
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="confirmDel" @bind="confirmDelete" />
+            <label class="form-check-label small" for="confirmDel">Понимаю, что данные пользователя будут удалены безвозвратно</label>
+        </div>
+        <p class="text-danger small">@modalErr</p>
+        <div class="d-flex gap-2">
+            <button class="btn btn-secondary" @onclick="HideModals">Отмена</button>
+            <button class="btn btn-danger" @onclick="DoDelete" disabled="@(!confirmDelete || busy)">Удалить</button>
+        </div>
+    </ModalDialog>
+}
+
+@code {
+    bool loading = true, busy;
+    List<AdminUserRow> users = new();
+    string? err, ok, currentUserId;
+
+    bool showAdd, showEdit, showPass, showDelete;
+    string? modalErr;
+
+    string addEmail = "", addPassword = "";
+    AdminUserRow? editTarget; string editEmail = "";
+    AdminUserRow? passTarget; string newPassword = "";
+    AdminUserRow? delTarget; bool confirmDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+        currentUserId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        await Load();
+    }
+
+    async Task Load()
+    {
+        loading = true;
+        users = await AS.GetUsers();
+        loading = false;
+    }
+
+    void ShowAdd() { addEmail = ""; addPassword = ""; modalErr = null; showAdd = true; }
+    void ShowEdit(AdminUserRow u) { editTarget = u; editEmail = u.Email; modalErr = null; showEdit = true; }
+    void ShowPass(AdminUserRow u) { passTarget = u; newPassword = ""; modalErr = null; showPass = true; }
+    void ShowDelete(AdminUserRow u) { delTarget = u; confirmDelete = false; modalErr = null; showDelete = true; }
+    void HideModals() { showAdd = showEdit = showPass = showDelete = false; }
+
+    async Task DoAdd()
+    {
+        busy = true; modalErr = null;
+        var r = await AS.CreateUser(addEmail, addPassword);
+        busy = false;
+        if (!r.Ok) { modalErr = r.Error; return; }
+        HideModals(); ok = "Пользователь создан."; await Load();
+    }
+
+    async Task DoEdit()
+    {
+        if (editTarget == null) return;
+        busy = true; modalErr = null;
+        var r = await AS.ChangeEmail(editTarget.Id, editEmail);
+        busy = false;
+        if (!r.Ok) { modalErr = r.Error; return; }
+        HideModals(); ok = "Email изменён."; await Load();
+    }
+
+    async Task DoPass()
+    {
+        if (passTarget == null) return;
+        busy = true; modalErr = null;
+        var r = await AS.ResetPassword(passTarget.Id, newPassword);
+        busy = false;
+        if (!r.Ok) { modalErr = r.Error; return; }
+        HideModals(); ok = "Пароль обновлён."; await Load();
+    }
+
+    async Task ToggleAdmin(AdminUserRow u)
+    {
+        err = null;
+        var r = await AS.SetAdmin(u.Id, !u.IsAdmin, currentUserId ?? "");
+        if (!r.Ok) { err = r.Error; return; }
+        await Load();
+    }
+
+    async Task DoDelete()
+    {
+        if (delTarget == null) return;
+        busy = true; modalErr = null;
+        var r = await AS.DeleteUser(delTarget.Id, currentUserId ?? "");
+        busy = false;
+        if (!r.Ok) { modalErr = r.Error; return; }
+        HideModals(); ok = "Пользователь удалён."; await Load();
+    }
+}
