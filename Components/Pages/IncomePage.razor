@@ -41,16 +41,19 @@ else { <div class="card"><div class="card-body">
     <div class="mb-3"><label class="form-label">Объект (необязательно)</label><select class="form-select" @bind="sid"><option value="">Без объекта</option>@foreach (var s in sites) { <option value="@s.Id">@s.Name</option> }</select></div>
     <div class="mb-3"><label class="form-label">Описание</label><input type="text" class="form-control" @bind="desc" /></div>
     @if (dupWarning) { <div class="alert alert-warning">Такая запись уже существует! Всё равно добавить?</div> }
-    <button class="btn btn-success" @onclick="Save" disabled="@(amt is null or <= 0)">@(editingId > 0 ? "Сохранить" : (dupWarning ? "Добавить повторно" : "Добавить"))</button>
+    @if (amtError) { <div class="alert alert-danger py-2">Укажите сумму больше нуля.</div> }
+    <button class="btn btn-success" @onclick="Save">@(editingId > 0 ? "Сохранить" : (dupWarning ? "Добавить повторно" : "Добавить"))</button>
 </ModalDialog> }
 @code {
-    bool loading = true, showModal, dupWarning; List<Income> items = new(); List<Site> sites = new(); double? amt; string desc = ""; DateTime dt = DateTime.Now; int editingId; int? sid;
+    bool loading = true, showModal, dupWarning, amtError; List<Income> items = new(); List<Site> sites = new(); double? amt; string desc = ""; DateTime dt = DateTime.Now; int editingId; int? sid;
     protected override async Task OnInitializedAsync() => await Load();
     async Task Load() { loading = true; items = await FS.GetIncomes(); sites = await FS.GetSites(); loading = false; }
-    void ShowAdd() { editingId = 0; amt = null; desc = ""; dt = DateTime.Now; sid = null; dupWarning = false; showModal = true; }
-    void ShowEdit(Income i) { editingId = i.Id; amt = i.Amount; desc = i.Description ?? ""; dt = i.Date; sid = i.SiteId; dupWarning = false; showModal = true; }
+    void ShowAdd() { editingId = 0; amt = null; desc = ""; dt = DateTime.Now; sid = null; dupWarning = false; amtError = false; showModal = true; }
+    void ShowEdit(Income i) { editingId = i.Id; amt = i.Amount; desc = i.Description ?? ""; dt = i.Date; sid = i.SiteId; dupWarning = false; amtError = false; showModal = true; }
     void HideModal() => showModal = false;
     async Task Save() {
+        if (amt is null or <= 0) { amtError = true; return; }
+        amtError = false;
         var inc = new Income { Amount = amt!.Value, Description = desc, Date = dt, SiteId = sid };
         if (editingId == 0 && !dupWarning) {
             if (await FS.IncomeExists(inc)) { dupWarning = true; return; }

@@ -37,8 +37,8 @@ else { @if (!sites.Any()) { <div class="alert alert-info">Нет объекто�
 @if (showModal)
 {
     <ModalDialog Title="@(editingId > 0 ? "Редактировать объект" : "Добавить объект")" OnClose="HideModals">
-        <div class="mb-3"><label class="form-label">Название</label><input type="text" class="form-control" @bind="editName" /></div>
-        <div class="mb-3"><label class="form-label">Адрес</label><input type="text" class="form-control" @bind="editAddr" /></div>
+        <div class="mb-3"><label class="form-label">Название</label><input type="text" class="form-control" @bind="editName" @bind:event="oninput" /></div>
+        <div class="mb-3"><label class="form-label">Адрес</label><input type="text" class="form-control" @bind="editAddr" @bind:event="oninput" /></div>
         <button class="btn btn-success" @onclick="Save" disabled="@string.IsNullOrWhiteSpace(editName)">@(editingId > 0 ? "Сохранить" : "Добавить")</button>
     </ModalDialog>
 }
