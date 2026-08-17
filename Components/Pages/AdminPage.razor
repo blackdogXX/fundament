@@ -103,7 +103,7 @@ else
                 {
                     <p class="text-muted small">Отправитель: <code>@ES.From</code>. Отправьте себе тестовое письмо, чтобы проверить настройки SMTP.</p>
                     <div class="input-group">
-                        <input type="text" class="form-control" placeholder="кому отправить" @bind="testEmail" />
+                        <input type="text" class="form-control" placeholder="кому отправить" @bind="testEmail" @bind:event="oninput" />
                         <button class="btn btn-outline-primary" @onclick="SendTest" disabled="@(string.IsNullOrWhiteSpace(testEmail) || testing)">
                             @if (testing) { <span class="spinner-border spinner-border-sm"></span> } else { <text>Отправить</text> }
                         </button>
@@ -122,8 +122,8 @@ else
 @if (showAdd)
 {
     <ModalDialog Title="Новый пользователь" OnClose="HideModals">
-        <div class="mb-3"><label class="form-label">Email</label><input type="text" class="form-control" @bind="addEmail" /></div>
-        <div class="mb-3"><label class="form-label">Пароль</label><input type="text" class="form-control" @bind="addPassword" /></div>
+        <div class="mb-3"><label class="form-label">Email</label><input type="text" class="form-control" @bind="addEmail" @bind:event="oninput" /></div>
+        <div class="mb-3"><label class="form-label">Пароль</label><input type="text" class="form-control" @bind="addPassword" @bind:event="oninput" /></div>
         <p class="text-muted small">Адрес почты сразу считается подтверждённым — письмо не отправляется, пароль передайте пользователю сами.</p>
         <p class="text-danger small">@modalErr</p>
         <button class="btn btn-success" @onclick="DoAdd" disabled="@(string.IsNullOrWhiteSpace(addEmail) || string.IsNullOrWhiteSpace(addPassword) || busy)">Создать</button>
@@ -134,7 +134,7 @@ else
 @if (showEdit)
 {
     <ModalDialog Title="@("Email: " + editTarget?.Email)" OnClose="HideModals">
-        <div class="mb-3"><label class="form-label">Новый email</label><input type="text" class="form-control" @bind="editEmail" /></div>
+        <div class="mb-3"><label class="form-label">Новый email</label><input type="text" class="form-control" @bind="editEmail" @bind:event="oninput" /></div>
         <p class="text-danger small">@modalErr</p>
         <button class="btn btn-primary" @onclick="DoEdit" disabled="@(string.IsNullOrWhiteSpace(editEmail) || busy)">Сохранить</button>
     </ModalDialog>
@@ -144,7 +144,7 @@ else
 @if (showPass)
 {
     <ModalDialog Title="@("Новый пароль: " + passTarget?.Email)" OnClose="HideModals">
-        <div class="mb-3"><label class="form-label">Новый пароль</label><input type="text" class="form-control" @bind="newPassword" /></div>
+        <div class="mb-3"><label class="form-label">Новый пароль</label><input type="text" class="form-control" @bind="newPassword" @bind:event="oninput" /></div>
         <p class="text-danger small">@modalErr</p>
         <button class="btn btn-primary" @onclick="DoPass" disabled="@(string.IsNullOrWhiteSpace(newPassword) || busy)">Сохранить</button>
     </ModalDialog>
