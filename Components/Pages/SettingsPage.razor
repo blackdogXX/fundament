@@ -1,7 +1,12 @@
 @page "/settings"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @inject FinService FS
+@inject BackupService BS
+@inject AuthenticationStateProvider AuthProvider
 @inject IJSRuntime JS
 
 <PageTitle>Fundament — Настройки</PageTitle>
@@ -54,7 +59,7 @@ else if (saved) { <div class="alert alert-success">Сохранено!</div> }
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header"><h5>Резервное копирование</h5></div>
+            <div class="card-header"><h5>Резервная копия</h5></div>
             <div class="card-body">
                 <p class="text-muted small">Выгрузка ваших данных — объекты, категории, доходы и расходы — одним JSON-файлом. Данные других пользователей в файл не попадают.</p>
                 <a class="btn btn-outline-primary" href="/api/backup/download" data-enhance-nav="false">
@@ -63,11 +68,84 @@ else if (saved) { <div class="alert alert-success">Сохранено!</div> }
             </div>
         </div>
     </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h5>Восстановление из файла</h5></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Файл резервной копии</label>
+                    <InputFile class="form-control" accept=".json" OnChange="OnFileSelected" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Режим</label>
+                    <select class="form-select" @bind="importMode">
+                        <option value="@ImportMode.Merge">Дописать к текущим данным</option>
+                        <option value="@ImportMode.Replace">Заменить все данные</option>
+                    </select>
+                </div>
+
+                @if (importMode == ImportMode.Replace)
+                {
+                    <div class="alert alert-danger py-2">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="confirmReplace" @bind="confirmReplace" />
+                            <label class="form-check-label small" for="confirmReplace">
+                                Понимаю, что все мои текущие доходы, расходы, объекты и категории будут удалены и заменены содержимым файла.
+                            </label>
+                        </div>
+                    </div>
+                }
+
+                <button class="btn btn-outline-primary" @onclick="DoImport" disabled="@CannotImport">
+                    @if (importing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                        <span>Импорт...</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-upload"></i>
+                        <span> Загрузить</span>
+                    }
+                </button>
+
+                @if (importResult != null)
+                {
+                    if (importResult.Ok)
+                    {
+                        <div class="alert alert-success mt-3 mb-0 small">
+                            Импорт завершён.<br />
+                            @if (importResult.Deleted > 0) { <text>Удалено записей: @importResult.Deleted<br /></text> }
+                            Добавлено: объектов @importResult.Sites, категорий @importResult.Categories, подкатегорий @importResult.Subcategories, доходов @importResult.Incomes, расходов @importResult.Expenses.<br />
+                            @if (importResult.SkippedIncomes + importResult.SkippedExpenses > 0)
+                            {
+                                <text>Пропущено дубликатов: доходов @importResult.SkippedIncomes, расходов @importResult.SkippedExpenses.<br /></text>
+                            }
+                            <a href="/" data-enhance-nav="false">Перейти на главную</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger mt-3 mb-0 small">@importResult.Error</div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
     bool loading = true, saved;
     string defaultSiteName = "", theme = "light", accent = "brand";
+
+    IBrowserFile? importFile;
+    ImportMode importMode = ImportMode.Merge;
+    bool confirmReplace, importing;
+    ImportResult? importResult;
+
+    bool CannotImport => importFile == null || importing || (importMode == ImportMode.Replace && !confirmReplace);
 
     protected override async Task OnInitializedAsync()
     {
@@ -92,5 +170,47 @@ else if (saved) { <div class="alert alert-success">Сохранено!</div> }
         await FS.SetSetting("accent", accent);
         await JS.InvokeVoidAsync("applyTheme", theme, accent);
         saved = true;
+    }
+
+    void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        importFile = e.File;
+        importResult = null;
+    }
+
+    async Task DoImport()
+    {
+        if (importFile == null) return;
+
+        importing = true;
+        importResult = null;
+        StateHasChanged();
+
+        try
+        {
+            var state = await AuthProvider.GetAuthenticationStateAsync();
+            var uid = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(uid))
+            {
+                importResult = new ImportResult { Error = "Сессия истекла, войдите заново" };
+                return;
+            }
+
+            using var stream = importFile.OpenReadStream(10 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+
+            importResult = await BS.Import(uid, ms, importMode);
+        }
+        catch (Exception ex)
+        {
+            importResult = new ImportResult { Error = ex.Message };
+        }
+        finally
+        {
+            importing = false;
+        }
     }
 }
