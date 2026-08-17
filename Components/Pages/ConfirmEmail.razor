@@ -1,0 +1,72 @@
+@page "/Account/ConfirmEmail"
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using ConstructionFinance.Models
+@inject UserManager<AppUser> UM
+@layout LoginLayout
+<PageTitle>Fundament — Подтверждение адреса</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-4 text-center">
+        @if (ok)
+        {
+            <div class="mb-3" style="font-size:44px;color:#2f7d5c;"><i class="bi bi-check-circle"></i></div>
+            <h4>Адрес подтверждён</h4>
+            <p class="text-muted">Теперь можно войти в приложение.</p>
+            <a href="/Account/Login" class="btn btn-primary mt-2">Войти</a>
+        }
+        else
+        {
+            <div class="mb-3" style="font-size:44px;color:#b8433a;"><i class="bi bi-x-circle"></i></div>
+            <h4>Не удалось подтвердить</h4>
+            <p class="text-muted">@err</p>
+            <a href="/Account/ResendConfirmation" class="btn btn-outline-primary mt-2">Выслать письмо повторно</a>
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? UserId { get; set; }
+    [SupplyParameterFromQuery] public string? Code { get; set; }
+
+    private bool ok;
+    private string err = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(UserId) || string.IsNullOrEmpty(Code))
+        {
+            err = "Ссылка неполная. Откройте её из письма целиком.";
+            return;
+        }
+
+        var user = await UM.FindByIdAsync(UserId);
+        if (user == null)
+        {
+            err = "Пользователь не найден — возможно, учётная запись была удалена.";
+            return;
+        }
+
+        if (await UM.IsEmailConfirmedAsync(user))
+        {
+            ok = true;
+            return;
+        }
+
+        string token;
+        try
+        {
+            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+        }
+        catch
+        {
+            err = "Ссылка повреждена. Запросите новое письмо.";
+            return;
+        }
+
+        var result = await UM.ConfirmEmailAsync(user, token);
+        if (result.Succeeded) ok = true;
+        else err = "Ссылка недействительна или истекла (она живёт 24 часа). Запросите новое письмо.";
+    }
+}

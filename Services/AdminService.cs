@@ -9,6 +9,7 @@ public class AdminUserRow
     public string Id { get; set; } = "";
     public string Email { get; set; } = "";
     public bool IsAdmin { get; set; }
+    public bool EmailConfirmed { get; set; }
     public DateTime? RegisteredAt { get; set; }
     public int SitesCount { get; set; }
     public int ExpensesCount { get; set; }
@@ -54,6 +55,7 @@ public class AdminService
                 Id = u.Id,
                 Email = u.Email ?? u.UserName ?? "",
                 IsAdmin = adminIds.Contains(u.Id),
+                EmailConfirmed = u.EmailConfirmed,
                 RegisteredAt = registeredAt,
                 SitesCount = sitesCount,
                 ExpensesCount = expensesCount,
@@ -65,6 +67,8 @@ public class AdminService
         return rows;
     }
 
+    // Созданного админом пользователя подтверждать письмом незачем: пароль
+    // задан вручную и передаётся человеку напрямую.
     public async Task<AdminOpResult> CreateUser(string email, string password)
     {
         email = email.Trim();
@@ -72,7 +76,7 @@ public class AdminService
         if (await _um.FindByEmailAsync(email) != null)
             return new AdminOpResult { Error = "Пользователь с таким email уже есть" };
 
-        var user = new AppUser { UserName = email, Email = email };
+        var user = new AppUser { UserName = email, Email = email, EmailConfirmed = true };
         var r = await _um.CreateAsync(user, password);
         if (!r.Succeeded)
             return new AdminOpResult { Error = string.Join("; ", r.Errors.Select(e => e.Description)) };
@@ -95,6 +99,19 @@ public class AdminService
 
         await _um.SetEmailAsync(user, newEmail);
         var r = await _um.SetUserNameAsync(user, newEmail);
+        if (!r.Succeeded)
+            return new AdminOpResult { Error = string.Join("; ", r.Errors.Select(e => e.Description)) };
+
+        return new AdminOpResult { Ok = true };
+    }
+
+    public async Task<AdminOpResult> SetEmailConfirmed(string userId, bool confirmed)
+    {
+        var user = await _um.FindByIdAsync(userId);
+        if (user == null) return new AdminOpResult { Error = "Пользователь не найден" };
+
+        user.EmailConfirmed = confirmed;
+        var r = await _um.UpdateAsync(user);
         if (!r.Succeeded)
             return new AdminOpResult { Error = string.Join("; ", r.Errors.Select(e => e.Description)) };
 

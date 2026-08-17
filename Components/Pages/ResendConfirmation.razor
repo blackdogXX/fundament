@@ -1,0 +1,75 @@
+@page "/Account/ResendConfirmation"
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using ConstructionFinance.Models
+@using ConstructionFinance.Services
+@inject UserManager<AppUser> UM
+@inject EmailService ES
+@inject AppOptions AppOpts
+@inject NavigationManager Nav
+@layout LoginLayout
+<PageTitle>Fundament — Повторное письмо</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        @if (sent)
+        {
+            <div class="text-center">
+                <div class="mb-3" style="font-size:44px;color:#c1440e;"><i class="bi bi-envelope-check"></i></div>
+                <h4>Письмо отправлено</h4>
+                <p class="text-muted">
+                    Если учётная запись с адресом <strong>@m.Email</strong> существует и ещё не подтверждена,
+                    на неё отправлена новая ссылка. Она действует 24 часа.
+                </p>
+                <p class="text-muted small">Письма нет? Проверьте папку «Спам».</p>
+                <a href="/Account/Login" class="btn btn-outline-primary mt-2">Вернуться ко входу</a>
+            </div>
+        }
+        else
+        {
+            <h2 class="text-center mb-4">Письмо подтверждения</h2>
+            <p class="text-muted small">Укажите адрес, на который регистрировались — вышлем новую ссылку подтверждения.</p>
+            <EditForm Model="m" OnValidSubmit="Submit" FormName="rc">
+                <DataAnnotationsValidator />
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <InputText @bind-Value="m.Email" class="form-control" />
+                    <ValidationMessage For="() => m.Email" />
+                </div>
+                @if (!ES.Enabled)
+                {
+                    <div class="alert alert-warning py-2 small">Отправка почты на сервере не настроена — обратитесь к администратору.</div>
+                }
+                <button type="submit" class="btn btn-primary w-100" disabled="@(!ES.Enabled)">Выслать письмо</button>
+            </EditForm>
+            <div class="text-center mt-3"><a href="/Account/Login">Вернуться ко входу</a></div>
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm] private M m { get; set; } = new();
+    private bool sent;
+
+    public class M
+    {
+        [Required(ErrorMessage = "Укажите email")]
+        [EmailAddress(ErrorMessage = "Похоже, это не адрес почты")]
+        public string Email { get; set; } = "";
+    }
+
+    private async Task Submit()
+    {
+        var user = await UM.FindByEmailAsync(m.Email.Trim());
+        if (user != null && !await UM.IsEmailConfirmedAsync(user))
+        {
+            var token = await UM.GenerateEmailConfirmationTokenAsync(user);
+            var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+            var baseUrl = AppOpts.ResolveBaseUrl(Nav.BaseUri);
+            var link = $"{baseUrl}/Account/ConfirmEmail?userId={Uri.EscapeDataString(user.Id)}&code={code}";
+            await ES.SendConfirmation(user.Email!, link);
+        }
+        sent = true;
+    }
+}

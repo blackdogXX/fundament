@@ -23,20 +23,56 @@
                 </div>
                 <ValidationMessage For="() => m.Pass" />
             </div>
-            <p class="text-danger">@err</p>
+
+            @if (notConfirmed)
+            {
+                <div class="alert alert-warning py-2 small">
+                    Адрес почты не подтверждён. Откройте письмо со ссылкой подтверждения или
+                    <a href="/Account/ResendConfirmation">запросите новое</a>.
+                </div>
+            }
+            else
+            {
+                <p class="text-danger">@err</p>
+            }
+
             <button type="submit" class="btn btn-primary w-100">Войти</button>
         </EditForm>
-        <div class="text-center mt-3"><a href="/Account/Register">Регистрация</a></div>
+        <div class="text-center mt-3"><a href="/Account/ForgotPassword">Забыли пароль?</a></div>
+        <div class="text-center mt-2"><a href="/Account/Register">Регистрация</a></div>
     </div>
 </div>
 
 @code {
     [SupplyParameterFromForm] private M m { get; set; } = new();
     private string? err;
-    public class M { [Required] public string Email { get; set; } = ""; [Required] public string Pass { get; set; } = ""; }
-    private async Task DoLogin() {
-        var u = await UM.FindByEmailAsync(m.Email);
-        if (u != null) { var r = await SM.PasswordSignInAsync(u.UserName!, m.Pass, false, false); if (r.Succeeded) { Nav.NavigateTo("/", forceLoad: true); return; } }
+    private bool notConfirmed;
+
+    public class M
+    {
+        [Required(ErrorMessage = "Укажите email")] public string Email { get; set; } = "";
+        [Required(ErrorMessage = "Укажите пароль")] public string Pass { get; set; } = "";
+    }
+
+    private async Task DoLogin()
+    {
+        err = null;
+        notConfirmed = false;
+
+        var u = await UM.FindByEmailAsync(m.Email.Trim());
+        if (u != null)
+        {
+            var r = await SM.PasswordSignInAsync(u.UserName!, m.Pass, false, false);
+            if (r.Succeeded) { Nav.NavigateTo("/", forceLoad: true); return; }
+
+            // Пароль верный, но адрес не подтверждён — говорим об этом прямо,
+            // иначе человек будет думать, что забыл пароль.
+            if (r.IsNotAllowed && await UM.CheckPasswordAsync(u, m.Pass) && !await UM.IsEmailConfirmedAsync(u))
+            {
+                notConfirmed = true;
+                return;
+            }
+        }
         err = "Неверный email или пароль";
     }
 }

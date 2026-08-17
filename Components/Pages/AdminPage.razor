@@ -4,6 +4,7 @@
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AdminService AS
+@inject EmailService ES
 @inject AuthenticationStateProvider AuthProvider
 
 <PageTitle>Fundament — Админка</PageTitle>
@@ -37,6 +38,7 @@ else
             <thead>
                 <tr>
                     <th>Email</th>
+                    <th>Почта</th>
                     <th>Регистрация</th>
                     <th>Баланс</th>
                     <th>Доходы</th>
@@ -52,6 +54,16 @@ else
                 {
                     <tr>
                         <td>@u.Email</td>
+                        <td>
+                            @if (u.EmailConfirmed)
+                            {
+                                <span class="badge bg-success" title="Адрес подтверждён">Да</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark" title="Адрес не подтверждён — войти не сможет">Нет</span>
+                            }
+                        </td>
                         <td class="text-muted small">@(u.RegisteredAt?.ToString("dd.MM.yyyy") ?? "—")</td>
                         <td class="@(u.Balance >= 0 ? "text-success" : "text-danger")">@u.Balance.ToString("N2") ₽</td>
                         <td class="text-muted small">@u.IncomeTotal.ToString("N2") ₽</td>
@@ -62,6 +74,7 @@ else
                         <td class="text-end">
                             <div class="btn-group">
                                 <button class="btn btn-sm btn-outline-primary" title="Изменить email" @onclick="() => ShowEdit(u)"><i class="bi bi-envelope"></i></button>
+                                <button class="btn btn-sm btn-outline-@(u.EmailConfirmed ? "success" : "warning")" title="@(u.EmailConfirmed ? "Снять подтверждение адреса" : "Подтвердить адрес вручную")" @onclick="() => ToggleConfirmed(u)"><i class="bi bi-patch-check"></i></button>
                                 <button class="btn btn-sm btn-outline-secondary" title="Сбросить пароль" @onclick="() => ShowPass(u)"><i class="bi bi-key"></i></button>
                                 <button class="btn btn-sm btn-outline-@(u.IsAdmin ? "warning" : "secondary")" title="@(u.IsAdmin ? "Забрать права администратора" : "Сделать администратором")" @onclick="() => ToggleAdmin(u)"><i class="bi bi-shield-lock"></i></button>
                                 <button class="btn btn-sm btn-outline-danger" title="Удалить" @onclick="() => ShowDelete(u)" disabled="@(u.Id == currentUserId)"><i class="bi bi-trash"></i></button>
@@ -74,12 +87,44 @@ else
     </div>
 }
 
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Проверка почты</h5></div>
+            <div class="card-body">
+                @if (!ES.Enabled)
+                {
+                    <div class="alert alert-warning py-2 mb-0 small">
+                        Отправка писем выключена: не заданы <code>SMTP_HOST</code> или <code>SMTP_FROM</code>.
+                        Подтверждение адреса и восстановление пароля работать не будут.
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small">Отправитель: <code>@ES.From</code>. Отправьте себе тестовое письмо, чтобы проверить настройки SMTP.</p>
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="кому отправить" @bind="testEmail" />
+                        <button class="btn btn-outline-primary" @onclick="SendTest" disabled="@(string.IsNullOrWhiteSpace(testEmail) || testing)">
+                            @if (testing) { <span class="spinner-border spinner-border-sm"></span> } else { <text>Отправить</text> }
+                        </button>
+                    </div>
+                    @if (testResult != null)
+                    {
+                        <div class="alert @(testOk ? "alert-success" : "alert-danger") mt-3 mb-0 small">@testResult</div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
 @* Добавить пользователя *@
 @if (showAdd)
 {
     <ModalDialog Title="Новый пользователь" OnClose="HideModals">
         <div class="mb-3"><label class="form-label">Email</label><input type="text" class="form-control" @bind="addEmail" /></div>
         <div class="mb-3"><label class="form-label">Пароль</label><input type="text" class="form-control" @bind="addPassword" /></div>
+        <p class="text-muted small">Адрес почты сразу считается подтверждённым — письмо не отправляется, пароль передайте пользователю сами.</p>
         <p class="text-danger small">@modalErr</p>
         <button class="btn btn-success" @onclick="DoAdd" disabled="@(string.IsNullOrWhiteSpace(addEmail) || string.IsNullOrWhiteSpace(addPassword) || busy)">Создать</button>
     </ModalDialog>
@@ -138,6 +183,10 @@ else
     AdminUserRow? passTarget; string newPassword = "";
     AdminUserRow? delTarget; bool confirmDelete;
 
+    string testEmail = "";
+    bool testing, testOk;
+    string? testResult;
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthProvider.GetAuthenticationStateAsync();
@@ -195,6 +244,14 @@ else
         await Load();
     }
 
+    async Task ToggleConfirmed(AdminUserRow u)
+    {
+        err = null;
+        var r = await AS.SetEmailConfirmed(u.Id, !u.EmailConfirmed);
+        if (!r.Ok) { err = r.Error; return; }
+        await Load();
+    }
+
     async Task DoDelete()
     {
         if (delTarget == null) return;
@@ -203,5 +260,14 @@ else
         busy = false;
         if (!r.Ok) { modalErr = r.Error; return; }
         HideModals(); ok = "Пользователь удалён."; await Load();
+    }
+
+    async Task SendTest()
+    {
+        testing = true; testResult = null;
+        var r = await ES.SendTest(testEmail.Trim());
+        testing = false;
+        testOk = r.Ok;
+        testResult = r.Ok ? $"Письмо отправлено на {testEmail}. Проверьте ящик, в том числе «Спам»." : "Ошибка: " + r.Error;
     }
 }

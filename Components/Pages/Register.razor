@@ -1,50 +1,127 @@
 @page "/Account/Register"
+@using System.Text
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
 @using ConstructionFinance.Models
 @using ConstructionFinance.Data
+@using ConstructionFinance.Services
 @inject UserManager<AppUser> UM
 @inject SignInManager<AppUser> SM
 @inject AppDbContext Ctx
+@inject EmailService ES
+@inject AppOptions AppOpts
 @inject NavigationManager Nav
 @layout LoginLayout
 <PageTitle>Fundament — Регистрация</PageTitle>
 
 <div class="row justify-content-center">
     <div class="col-md-4">
-        <h2 class="text-center mb-4">Регистрация</h2>
-        <EditForm Model="m" OnValidSubmit="DoRegister" FormName="f2">
-            <DataAnnotationsValidator />
-            <div class="mb-3"><label class="form-label">Email</label><InputText @bind-Value="m.Email" class="form-control" /><ValidationMessage For="() => m.Email" /></div>
-            <div class="mb-3">
-                <label class="form-label">Пароль</label>
-                <div class="input-group">
-                    <InputText @bind-Value="m.Pass" id="regPass" type="password" class="form-control" />
-                    <span class="input-group-text" onclick="toggleField('regPass','regPassIcon')" style="cursor:pointer;">
-                        <i class="bi bi-eye" id="regPassIcon"></i>
-                    </span>
-                </div>
-                <ValidationMessage For="() => m.Pass" />
+        @if (sent)
+        {
+            <div class="text-center">
+                <div class="mb-3" style="font-size:44px;color:#c1440e;"><i class="bi bi-envelope-check"></i></div>
+                <h4>Проверьте почту</h4>
+                <p class="text-muted">
+                    Мы отправили письмо со ссылкой подтверждения на <strong>@m.Email</strong>.
+                    Перейдите по ссылке из письма — после этого можно будет войти.
+                </p>
+                @if (sendError != null)
+                {
+                    <div class="alert alert-warning small text-start">
+                        Учётная запись создана, но письмо отправить не удалось: @sendError<br />
+                        Попробуйте <a href="/Account/ResendConfirmation">выслать письмо повторно</a>.
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small">Письма нет? Проверьте папку «Спам» или <a href="/Account/ResendConfirmation">запросите новое</a>.</p>
+                }
+                <a href="/Account/Login" class="btn btn-outline-primary mt-2">Перейти ко входу</a>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Подтверждение</label>
-                <div class="input-group">
-                    <InputText @bind-Value="m.Confirm" id="regConfirm" type="password" class="form-control" />
-                    <span class="input-group-text" onclick="toggleField('regConfirm','regConfirmIcon')" style="cursor:pointer;">
-                        <i class="bi bi-eye" id="regConfirmIcon"></i>
-                    </span>
+        }
+        else
+        {
+            <h2 class="text-center mb-4">Регистрация</h2>
+            <EditForm Model="m" OnValidSubmit="DoRegister" FormName="f2">
+                <DataAnnotationsValidator />
+                <div class="mb-3"><label class="form-label">Email</label><InputText @bind-Value="m.Email" class="form-control" /><ValidationMessage For="() => m.Email" /></div>
+                <div class="mb-3">
+                    <label class="form-label">Пароль</label>
+                    <div class="input-group">
+                        <InputText @bind-Value="m.Pass" id="regPass" type="password" class="form-control" />
+                        <span class="input-group-text" onclick="toggleField('regPass','regPassIcon')" style="cursor:pointer;">
+                            <i class="bi bi-eye" id="regPassIcon"></i>
+                        </span>
+                    </div>
+                    <ValidationMessage For="() => m.Pass" />
                 </div>
-                <ValidationMessage For="() => m.Confirm" />
-            </div>
-            <p class="text-danger">@err</p>
-            <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
-        </EditForm>
-        <div class="text-center mt-3"><a href="/Account/Login">Уже есть аккаунт?</a></div>
+                <div class="mb-3">
+                    <label class="form-label">Подтверждение</label>
+                    <div class="input-group">
+                        <InputText @bind-Value="m.Confirm" id="regConfirm" type="password" class="form-control" />
+                        <span class="input-group-text" onclick="toggleField('regConfirm','regConfirmIcon')" style="cursor:pointer;">
+                            <i class="bi bi-eye" id="regConfirmIcon"></i>
+                        </span>
+                    </div>
+                    <ValidationMessage For="() => m.Confirm" />
+                </div>
+                <p class="text-danger">@err</p>
+                <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+            </EditForm>
+            <div class="text-center mt-3"><a href="/Account/Login">Уже есть аккаунт?</a></div>
+        }
     </div>
 </div>
 
 @code {
     [SupplyParameterFromForm] private R m { get; set; } = new();
-    private string? err;
-    public class R { [Required] public string Email { get; set; } = ""; [Required] [MinLength(4)] public string Pass { get; set; } = ""; [Required] [Compare("Pass")] public string Confirm { get; set; } = ""; }
-    private async Task DoRegister() { var u = new AppUser { UserName = m.Email, Email = m.Email }; var r = await UM.CreateAsync(u, m.Pass); if (r.Succeeded) { await DbInit.CreateDefaults(Ctx, u.Id); await SM.SignInAsync(u, false); Nav.NavigateTo("/", forceLoad: true); } else err = string.Join("; ", r.Errors.Select(e => e.Description)); }
+    private string? err, sendError;
+    private bool sent;
+
+    public class R
+    {
+        [Required(ErrorMessage = "Укажите email")]
+        [EmailAddress(ErrorMessage = "Похоже, это не адрес почты")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Укажите пароль")]
+        [MinLength(4, ErrorMessage = "Минимум 4 символа")]
+        public string Pass { get; set; } = "";
+
+        [Required(ErrorMessage = "Повторите пароль")]
+        [Compare("Pass", ErrorMessage = "Пароли не совпадают")]
+        public string Confirm { get; set; } = "";
+    }
+
+    private async Task DoRegister()
+    {
+        var email = m.Email.Trim();
+        var u = new AppUser { UserName = email, Email = email };
+        var r = await UM.CreateAsync(u, m.Pass);
+
+        if (!r.Succeeded)
+        {
+            err = string.Join("; ", r.Errors.Select(e => e.Description));
+            return;
+        }
+
+        await DbInit.CreateDefaults(Ctx, u.Id);
+
+        // Почта не настроена — работаем по-старому, сразу пускаем внутрь.
+        if (!ES.Enabled || !AppOpts.RequireConfirmedEmail)
+        {
+            await SM.SignInAsync(u, false);
+            Nav.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        var token = await UM.GenerateEmailConfirmationTokenAsync(u);
+        var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var baseUrl = AppOpts.ResolveBaseUrl(Nav.BaseUri);
+        var link = $"{baseUrl}/Account/ConfirmEmail?userId={Uri.EscapeDataString(u.Id)}&code={code}";
+
+        var res = await ES.SendConfirmation(email, link);
+        if (!res.Ok) sendError = res.Error;
+        sent = true;
+    }
 }
