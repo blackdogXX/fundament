@@ -51,6 +51,20 @@ else if (saved) { <div class="alert alert-success">Сохранено!</div> }
     </div>
 </div>
 
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h5>Резервное копирование</h5></div>
+            <div class="card-body">
+                <p class="text-muted small">Выгрузка ваших данных — объекты, категории, доходы и расходы — одним JSON-файлом. Данные других пользователей в файл не попадают.</p>
+                <a class="btn btn-outline-primary" href="/api/backup/download" data-enhance-nav="false">
+                    <i class="bi bi-download"></i> Скачать мои данные
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
     bool loading = true, saved;
     string defaultSiteName = "", theme = "light", accent = "brand";

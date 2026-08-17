@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ConstructionFinance.Data;
@@ -20,6 +21,7 @@ builder.Services.AddDataProtection()
     .SetApplicationName("Fundament");
 
 builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
 
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 {
@@ -41,6 +43,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<FinService>();
+builder.Services.AddScoped<BackupService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -64,5 +67,15 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapGet("/api/backup/download", async (HttpContext http, BackupService backup) =>
+{
+    var uid = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(uid)) return Results.Unauthorized();
+
+    var bytes = await backup.ExportBytes(uid);
+    var filename = $"fundament-backup-{DateTime.Now:yyyy-MM-dd-HHmm}.json";
+    return Results.File(bytes, "application/json", filename);
+}).RequireAuthorization();
 
 app.Run();
