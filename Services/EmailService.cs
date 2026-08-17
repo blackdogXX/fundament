@@ -15,6 +15,10 @@ public class EmailSettings
     // auto | starttls | ssl | none
     public string Security { get; set; } = "auto";
     public bool AllowInvalidCert { get; set; }
+    // Проверка списка отозванных сертификатов (CRL). Из контейнера CRL обычно
+    // недоступен и соединение падает, хотя сертификат в порядке. Проверка самого
+    // сертификата и имени хоста при этом продолжает работать.
+    public bool CheckRevocation { get; set; }
 
     public bool Enabled => !string.IsNullOrWhiteSpace(Host) && !string.IsNullOrWhiteSpace(From);
 }
@@ -68,6 +72,7 @@ public class EmailService
             };
 
             using var client = new SmtpClient();
+            client.CheckCertificateRevocation = _s.CheckRevocation;
             if (_s.AllowInvalidCert)
                 client.ServerCertificateValidationCallback = (a, b, c, d) => true;
 

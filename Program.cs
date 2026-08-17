@@ -30,7 +30,8 @@ var emailSettings = new EmailSettings
     From = builder.Configuration["SMTP_FROM"] ?? "",
     FromName = builder.Configuration["SMTP_FROM_NAME"] ?? "Fundament",
     Security = builder.Configuration["SMTP_SECURITY"] ?? "auto",
-    AllowInvalidCert = string.Equals(builder.Configuration["SMTP_ALLOW_INVALID_CERT"], "true", StringComparison.OrdinalIgnoreCase)
+    AllowInvalidCert = string.Equals(builder.Configuration["SMTP_ALLOW_INVALID_CERT"], "true", StringComparison.OrdinalIgnoreCase),
+    CheckRevocation = string.Equals(builder.Configuration["SMTP_CHECK_REVOCATION"], "true", StringComparison.OrdinalIgnoreCase)
 };
 builder.Services.AddSingleton(emailSettings);
 builder.Services.AddScoped<EmailService>();

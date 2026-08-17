@@ -22,4 +22,5 @@ services:
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Fundament}
       - SMTP_SECURITY=${SMTP_SECURITY:-starttls}
       - SMTP_ALLOW_INVALID_CERT=${SMTP_ALLOW_INVALID_CERT:-false}
+      - SMTP_CHECK_REVOCATION=${SMTP_CHECK_REVOCATION:-false}
     restart: unless-stopped
